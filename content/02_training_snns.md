@@ -156,19 +156,56 @@ Compare its wall-clock time and accuracy with the custom-autograd version — ac
 should match (same surrogate), but the compiled model trains faster.
 
 <!-- CELL 2.15 | markdown -->
-## Results
+## Results & visualizations
 
-Print the summary table. You should see:
+Each `train_model` call returned a **history** (per-epoch train/test loss and
+accuracy) and a training-only **wall-clock time**. We now read those out as a summary
+table and three plots. Headlines to expect:
 
 - The **SNN reaches accuracy competitive with the MLP**, a little below the GRU — a
   good result for a spiking network on a small dataset.
-- **FGI and custom-autograd give the same accuracy** (identical surrogate); the
-  difference is purely about *compilability* and therefore speed.
-- On Colab, the **compiled** SNN trains markedly faster than the eager one, despite
-  the unrolled 30-step loop.
+- **The two SNN variants (custom-autograd vs forward-gradient injection) reach the
+  same accuracy** — they use the identical surrogate. Any small difference is just
+  random fluctuation from seeding. They differ only in *runtime*.
+- On Colab, the **compiled** FGI SNN trains markedly faster than the eager one.
 
-We save the trained SNN to `checkpoints/` — Chapter 3 loads it to study what the
-network does at inference.
+We also save the trained SNN to `checkpoints/` — Chapter 3 loads it.
 
-<!-- CELL 2.15b | code -> scripts/02_training_snns.py -->
+<!-- CELL 2.16 | code -> scripts/02_training_snns.py -->
 *(No task — print the summary table and save the checkpoint.)*
+
+<!-- CELL 2.17 | markdown -->
+### Training curves
+
+For each model type, plot loss and accuracy **against epoch**, with the **training**
+split solid and the **test** split dashed. These show *how* learning progresses: the
+loss falling, the accuracy rising, and the gap between train and test (a read on
+over-fitting — expected here, since the dataset is small).
+
+<!-- CELL 2.18 | code -> scripts/02_training_snns.py -->
+*(No task — plot the train/test loss and accuracy curves for the SNN, MLP and GRU.)*
+
+<!-- CELL 2.19 | markdown -->
+### Training time
+
+Training time is a **single number per run** — the total wall-clock seconds for the
+fixed number of epochs. A bar plot makes the comparison clear. Note the two SNN
+variants: custom-autograd vs forward-gradient injection (and, on Colab, the compiled
+variant), which is where the FGI + `torch.compile` speed-up shows up. The MLP and GRU
+are fast because their layers are single fused ops; the eager SNN pays for its
+Python-level unrolled time loop — exactly what compilation removes.
+
+<!-- CELL 2.20 | code -> scripts/02_training_snns.py -->
+*(No task — bar plot of per-run training time.)*
+
+<!-- CELL 2.21 | markdown -->
+### Confusion matrices
+
+Accuracy is one number; a **confusion matrix** shows *which* classes get confused. We
+plot one per model type (MLP, SNN, GRU), normalized per true class (rows sum to 1), so
+the diagonal is the per-class recall. Look for which strokes are hardest — e.g.
+badminton vs squash should separate easily, while the two strokes *within* a sport may
+be confused.
+
+<!-- CELL 2.22 | code -> scripts/02_training_snns.py -->
+*(No task — compute and plot the three confusion matrices on the test set.)*

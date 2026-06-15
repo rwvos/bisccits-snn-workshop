@@ -9,8 +9,12 @@ import time
 import numpy as np
 import torch
 import torch.nn as nn
+import matplotlib.pyplot as plt
 
 from snn_workshop import set_seed, get_device
+from snn_workshop.viz import (
+    plot_training_curves, plot_runtime_bar, plot_confusion_matrices,
+)
 
 set_seed(0)
 DEVICE = get_device()
@@ -111,44 +115,70 @@ y_test = torch.tensor(ds.y_test, device=DEVICE)
 
 
 # %% CELL 2.10 | code  (shared training / evaluation loop -- not a task)
-def accuracy(model, X, y):
+@torch.no_grad()
+def evaluate(model, X, y, loss_fn):
     model.eval()
-    with torch.no_grad():
-        return (model(X).argmax(dim=1) == y).float().mean().item()
+    out = model(X)
+    return loss_fn(out, y).item(), (out.argmax(dim=1) == y).float().mean().item()
 
 
 def train_model(model, epochs=80, lr=2e-3, batch_size=32, seed=0):
-    """Mini-batch Adam training. Returns (train_acc, test_acc, wall_time_seconds)."""
+    """Mini-batch Adam training with per-epoch logging.
+
+    Returns a dict: ``history`` (per-epoch train/test loss & accuracy), the final
+    ``train_acc``/``test_acc``, and ``wall`` = training-only wall-clock seconds
+    (the per-epoch evaluation used for the curves is deliberately *excluded* from the
+    timing, so the runtime comparison reflects training compute only).
+    """
     set_seed(seed)
     model.to(DEVICE)
     opt = torch.optim.Adam(model.parameters(), lr=lr)
     loss_fn = nn.CrossEntropyLoss()
     n = X_train.shape[0]
+    history = {"train_loss": [], "train_acc": [], "test_loss": [], "test_acc": []}
 
-    if DEVICE.type == "cuda":
-        torch.cuda.synchronize()
-    t0 = time.perf_counter()
+    train_time = 0.0
     for _ in range(epochs):
         model.train()
         perm = torch.randperm(n, device=DEVICE)
+        if DEVICE.type == "cuda":
+            torch.cuda.synchronize()
+        t0 = time.perf_counter()
         for i in range(0, n, batch_size):
             idx = perm[i:i + batch_size]
             opt.zero_grad()
             loss = loss_fn(model(X_train[idx]), y_train[idx])
             loss.backward()
             opt.step()
-    if DEVICE.type == "cuda":
-        torch.cuda.synchronize()
-    wall = time.perf_counter() - t0
-    return accuracy(model, X_train, y_train), accuracy(model, X_test, y_test), wall
+        if DEVICE.type == "cuda":
+            torch.cuda.synchronize()
+        train_time += time.perf_counter() - t0
+
+        # Per-epoch logging (not timed).
+        trl, tra = evaluate(model, X_train, y_train, loss_fn)
+        tel, tea = evaluate(model, X_test, y_test, loss_fn)
+        history["train_loss"].append(trl); history["train_acc"].append(tra)
+        history["test_loss"].append(tel); history["test_acc"].append(tea)
+
+    return {"history": history, "train_acc": history["train_acc"][-1],
+            "test_acc": history["test_acc"][-1], "wall": train_time}
+
+
+# `results` collects metrics per run; `models` keeps the trained models for later cells.
+results = {}
+models = {}
+
+
+def report(name, res):
+    results[name] = res
+    print(f"{name:26s}: train {res['train_acc']:.3f}  test {res['test_acc']:.3f}  "
+          f"time {res['wall']:.1f}s")
 
 
 # Train the SNN with the custom-autograd surrogate.
 snn = DeepSNN(ds.n_channels, hidden=64, n_layers=3, n_classes=ds.n_classes,
               beta=0.9, threshold=1.0, slope=10.0, spike_fn=spike_autograd)
-tr, te, wall = train_model(snn)
-results = {"SNN (autograd surrogate)": (tr, te, wall)}
-print(f"SNN (autograd): train {tr:.3f}  test {te:.3f}  time {wall:.1f}s")
+report("SNN (autograd)", train_model(snn))
 
 
 # %% CELL 2.12 | code  (non-spiking baselines -- not a task)
@@ -178,14 +208,10 @@ class GRUClassifier(nn.Module):
 
 
 mlp = MLP(ds.n_channels, ds.n_timesteps, 64, 3, ds.n_classes)
-tr, te, wall = train_model(mlp)
-results["MLP (flatten time)"] = (tr, te, wall)
-print(f"MLP: train {tr:.3f}  test {te:.3f}  time {wall:.1f}s")
+report("MLP", train_model(mlp))
 
 gru = GRUClassifier(ds.n_channels, 64, 3, ds.n_classes)
-tr, te, wall = train_model(gru)
-results["GRU"] = (tr, te, wall)
-print(f"GRU: train {tr:.3f}  test {te:.3f}  time {wall:.1f}s")
+report("GRU", train_model(gru))
 
 
 # %% CELL 2.14 | code  # TASK: forward-gradient injection + torch.compile
@@ -214,28 +240,25 @@ if can_compile:
     try:
         compiled = torch.compile(snn_fgi)
         _ = compiled(X_train[:8])        # trigger compilation (slow the first time)
-        tr, te, wall = train_model(compiled)
-        results["SNN (FGI + compile)"] = (tr, te, wall)
-        print(f"SNN (FGI+compile): train {tr:.3f}  test {te:.3f}  time {wall:.1f}s")
+        report("SNN (FGI + compile)", train_model(compiled))
     except Exception as e:
         print("torch.compile failed; training FGI model eagerly instead.")
         print("  reason:", repr(e)[:200])
-        tr, te, wall = train_model(snn_fgi)
-        results["SNN (FGI, eager)"] = (tr, te, wall)
-        print(f"SNN (FGI, eager): train {tr:.3f}  test {te:.3f}  time {wall:.1f}s")
+        report("SNN (FGI, eager)", train_model(snn_fgi))
 else:
     print("Skipping torch.compile on this platform (no backend); training eagerly.")
     print("On the Colab GPU runtime this cell trains a compiled model -- much faster.")
-    tr, te, wall = train_model(snn_fgi)
-    results["SNN (FGI, eager)"] = (tr, te, wall)
-    print(f"SNN (FGI, eager): train {tr:.3f}  test {te:.3f}  time {wall:.1f}s")
+    report("SNN (FGI, eager)", train_model(snn_fgi))
+
+# Keep the trained models for the confusion-matrix cell (use the FGI SNN as "SNN").
+models = {"MLP": mlp, "SNN": snn_fgi, "GRU": gru}
 
 
-# %% CELL 2.15b | code  (summary table + save checkpoint for Chapter 3 -- not a task)
+# %% CELL 2.16 | code  (summary table + save checkpoint for Chapter 3 -- not a task)
 print("\n=== Summary ===")
-print(f"{'model':28s} {'train':>7s} {'test':>7s} {'time (s)':>9s}")
-for name, (tr, te, wall) in results.items():
-    print(f"{name:28s} {tr:7.3f} {te:7.3f} {wall:9.1f}")
+print(f"{'model':22s} {'train':>7s} {'test':>7s} {'time (s)':>9s}")
+for name, res in results.items():
+    print(f"{name:22s} {res['train_acc']:7.3f} {res['test_acc']:7.3f} {res['wall']:9.1f}")
 
 os.makedirs("checkpoints", exist_ok=True)
 ckpt = {
@@ -245,4 +268,43 @@ ckpt = {
     "class_names": ds.class_names,
 }
 torch.save(ckpt, "checkpoints/snn_racketsports.pt")
-print("\nsaved trained SNN -> checkpoints/snn_racketsports.pt")
+print("saved trained SNN -> checkpoints/snn_racketsports.pt")
+
+
+# %% CELL 2.18 | code  (training curves -- not a task)
+# Loss and accuracy vs epoch (train solid, test dashed) for each model type.
+for name in ["SNN (autograd)", "MLP", "GRU"]:
+    plot_training_curves(results[name]["history"], title=f"{name} — training curves")
+    plt.show()
+
+
+# %% CELL 2.20 | code  (training time comparison -- not a task)
+# Single number per run: total training wall-clock time. The two SNN variants differ
+# only in runtime (and tiny seeding fluctuations), not in what they learn.
+plot_runtime_bar({name: res["wall"] for name, res in results.items()},
+                 title=f"Training time for {len(results)} runs (same epochs)")
+plt.show()
+
+
+# %% CELL 2.22 | code  (confusion matrices -- not a task)
+def confusion(y_true, y_pred, n_classes):
+    cm = np.zeros((n_classes, n_classes), dtype=int)
+    np.add.at(cm, (y_true, y_pred), 1)
+    return cm
+
+
+short_names = [n.replace("Badminton", "Bad").replace("Squash", "Squ")
+                .replace("Backhand Boast", "BH").replace("Forehand Boast", "FH")
+               for n in ds.class_names]
+
+y_true = y_test.cpu().numpy()
+cms, names = [], []
+for name, model in models.items():
+    model.eval()
+    with torch.no_grad():
+        y_pred = model(X_test).argmax(dim=1).cpu().numpy()
+    cms.append(confusion(y_true, y_pred, ds.n_classes))
+    names.append(name)
+
+plot_confusion_matrices(cms, short_names, names, normalize=True)
+plt.show()
