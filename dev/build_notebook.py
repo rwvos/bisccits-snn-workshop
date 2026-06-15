@@ -18,6 +18,34 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CHAPTERS = ["01_defining_snns", "02_training_snns", "03_evaluating_snns"]
 OUT = os.path.join(ROOT, "BISCCITS_SNN_Workshop.ipynb")
 
+# Injected as the first two cells: install the workshop package + dependencies so the
+# helper modules in snn_workshop/ are importable (especially on Google Colab).
+SETUP_MD = """## Setup — run this first
+
+This workshop uses helper modules from its GitHub repository (dataset loading, the
+spiking-network models, and plotting utilities). The cell below **installs the
+repository as a package** — along with external dependencies such as `aeon` (used to
+download the dataset) — so that `import snn_workshop` works on Google Colab. PyTorch,
+NumPy and Matplotlib are already available on Colab.
+
+> Running locally from a clone instead? Use `pip install -e .` in the repo root; the
+> cell below detects that `snn_workshop` is already importable and skips the install."""
+
+SETUP_CODE = '''# Install the workshop package (and its dependencies, e.g. aeon) if needed.
+import importlib.util, subprocess, sys
+
+REPO_URL = "https://github.com/rwvos/bisccits-snn-workshop.git"  # workshop repository
+
+if importlib.util.find_spec("snn_workshop") is None:
+    print(f"Installing snn_workshop (+ aeon and other dependencies) from {REPO_URL} ...")
+    subprocess.run(
+        [sys.executable, "-m", "pip", "install", "-q", f"git+{REPO_URL}"],
+        check=True,
+    )
+    print("Installation complete.")
+else:
+    print("snn_workshop already importable — skipping install.")'''
+
 MD_MARKER = re.compile(r"^<!--\s*CELL\s+(\S+)\s*\|\s*(markdown|code)\b.*-->\s*$")
 PY_MARKER = re.compile(r"^#\s*%%\s*CELL\s+(\S+)\s*\|\s*code\b.*$")
 
@@ -72,7 +100,7 @@ def cell(kind, text):
 
 
 def main():
-    nb_cells = []
+    nb_cells = [cell("markdown", SETUP_MD), cell("code", SETUP_CODE)]
     for chap in CHAPTERS:
         md = parse_markdown(os.path.join(ROOT, "content", f"{chap}.md"))
         py = parse_python(os.path.join(ROOT, "scripts", f"{chap}.py"))

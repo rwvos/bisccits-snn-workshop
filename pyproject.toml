@@ -1,0 +1,20 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bisccits-snn-workshop"
+version = "0.1.0"
+description = "BISCCITS workshop on Spiking Neural Networks (helper package)"
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "torch>=2.4",
+    "numpy",
+    "matplotlib",
+    "aeon",
+    "scikit-learn",
+]
+
+[tool.setuptools]
+packages = ["snn_workshop"]
