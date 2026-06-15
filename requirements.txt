@@ -1,0 +1,10 @@
+# Core
+torch>=2.4
+numpy
+matplotlib
+
+# Dataset (UEA RacketSports auto-download)
+aeon
+
+# Metrics / preprocessing
+scikit-learn

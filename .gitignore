@@ -30,3 +30,7 @@ Thumbs.db
 *.pt
 *.pth
 *.ckpt
+
+# Generated during dev runs
+figures/
+checkpoints/
