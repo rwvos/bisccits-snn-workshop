@@ -100,6 +100,52 @@ def plot_training_curves(history: dict, title: str = "Training curves"):
     return fig
 
 
+def plot_metric_comparison(histories: dict, metric: str, ylabel: str,
+                           title: str, ax=None):
+    """Overlay one metric (e.g. ``train_acc``) across models on a single axis.
+
+    ``histories`` maps model name -> history dict.
+    """
+    fig = None
+    if ax is None:
+        fig, ax = plt.subplots(figsize=(8, 4.5))
+    for name, h in histories.items():
+        ax.plot(range(1, len(h[metric]) + 1), h[metric], label=name)
+    ax.set_xlabel("epoch")
+    ax.set_ylabel(ylabel)
+    ax.set_title(title)
+    if "acc" in metric:
+        ax.set_ylim(0, 1.02)
+    ax.legend(fontsize=8)
+    if fig is not None:
+        fig.tight_layout()
+    return ax
+
+
+def plot_method_grid(histories: dict, title: str = "Method comparison"):
+    """2x2 grid comparing all models: rows = train / test, cols = loss / accuracy."""
+    layout = {
+        (0, 0): ("train_loss", "Train — loss", "cross-entropy loss"),
+        (0, 1): ("train_acc", "Train — accuracy", "accuracy"),
+        (1, 0): ("test_loss", "Test — loss", "cross-entropy loss"),
+        (1, 1): ("test_acc", "Test — accuracy", "accuracy"),
+    }
+    fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+    for (r, c), (key, panel_title, ylabel) in layout.items():
+        ax = axes[r, c]
+        for name, h in histories.items():
+            ax.plot(range(1, len(h[key]) + 1), h[key], label=name)
+        ax.set_title(panel_title)
+        ax.set_xlabel("epoch")
+        ax.set_ylabel(ylabel)
+        if "acc" in key:
+            ax.set_ylim(0, 1.02)
+        ax.legend(fontsize=7)
+    fig.suptitle(title)
+    fig.tight_layout()
+    return fig
+
+
 def plot_runtime_bar(times: dict, title: str = "Training wall-clock time"):
     """Bar chart of per-model training time (seconds). ``times`` maps name -> seconds."""
     names = list(times)

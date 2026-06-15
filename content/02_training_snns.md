@@ -185,6 +185,22 @@ over-fitting — expected here, since the dataset is small).
 <!-- CELL 2.18 | code -> scripts/02_training_snns.py -->
 *(No task — plot the train/test loss and accuracy curves for the SNN, MLP and GRU.)*
 
+<!-- CELL 2.18b | markdown -->
+### Comparing the methods directly
+
+The per-model curves above each mix train and test on one axis. To compare *methods*
+we instead overlay them on shared axes. First, **conditioned on the training set**:
+how quickly and how high does each method's **training accuracy** climb? Then a single
+**2×2 grid** — rows are train (top) / test (bottom), columns are loss (left) /
+accuracy (right) — with every method overlaid in each panel, so differences in
+optimization speed and generalization are visible at a glance.
+
+<!-- CELL 2.18c | code -> scripts/02_training_snns.py -->
+*(No task — overlay every method's training-set accuracy on one axis.)*
+
+<!-- CELL 2.18d | code -> scripts/02_training_snns.py -->
+*(No task — 2×2 grid comparing all methods: train/test × loss/accuracy.)*
+
 <!-- CELL 2.19 | markdown -->
 ### Training time
 

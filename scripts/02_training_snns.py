@@ -13,7 +13,8 @@ import matplotlib.pyplot as plt
 
 from snn_workshop import set_seed, get_device
 from snn_workshop.viz import (
-    plot_training_curves, plot_runtime_bar, plot_confusion_matrices,
+    plot_training_curves, plot_metric_comparison, plot_method_grid,
+    plot_runtime_bar, plot_confusion_matrices,
 )
 
 set_seed(0)
@@ -276,6 +277,22 @@ print("saved trained SNN -> checkpoints/snn_racketsports.pt")
 for name in ["SNN (autograd)", "MLP", "GRU"]:
     plot_training_curves(results[name]["history"], title=f"{name} — training curves")
     plt.show()
+
+
+# %% CELL 2.18c | code  (cross-method comparison on the training set -- not a task)
+# Overlay every method's TRAIN accuracy on one axis to compare how fast/high each
+# learns on the data it is trained on.
+histories = {name: res["history"] for name, res in results.items()}
+plot_metric_comparison(histories, "train_acc", ylabel="accuracy",
+                       title="Training-set accuracy — all methods")
+plt.show()
+
+
+# %% CELL 2.18d | code  (2x2 method comparison grid -- not a task)
+# Rows: train (top) vs test (bottom). Columns: loss (left) vs accuracy (right).
+# Every panel overlays all methods so they can be compared directly.
+plot_method_grid(histories, title="Method comparison — loss & accuracy, train & test")
+plt.show()
 
 
 # %% CELL 2.20 | code  (training time comparison -- not a task)
