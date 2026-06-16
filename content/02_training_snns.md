@@ -78,6 +78,10 @@ We use **RacketSports** from the UEA multivariate time-series archive. Universit
 students played **badminton** or **squash** while wearing a **smartwatch**; the watch
 streamed its accelerometer and gyroscope.
 
+![University students playing racket sports while wearing a smartwatch — the source of the RacketSports dataset.](RacketSports.jpg "width=480")
+
+*The RacketSports dataset was recorded from a smartwatch's accelerometer and gyroscope while players performed badminton and squash strokes ([Zenodo](https://zenodo.org/records/3742271)).*
+
 | property | value |
 |---|---|
 | channels (C) | **6** — 3-axis accelerometer + 3-axis gyroscope |
@@ -93,6 +97,23 @@ current at each of the 30 timesteps, and read out 4 class logits.
 <!-- CELL 2.8 | code -> scripts/02_training_snns.py -->
 **Load the data** with the helper (`aeon` downloads it automatically) and move the
 tensors to the device.
+
+<!-- CELL 2.8b | markdown -->
+### What does one trial look like?
+
+Before training, let us *see* a single swing. The 6 channels are hard to read as raw
+traces, but three of them — the **accelerometer** axes — describe how the watch moves
+through space. If we **integrate the acceleration twice** (acceleration → velocity →
+position) we recover an approximate **3D trajectory of the swing**, and we can colour
+that path by how hard the watch is accelerating at each instant.
+
+> **Caveat.** Double-integrating a short, noisy accelerometer signal drifts, so this is
+> an *illustrative* shape rather than a precise reconstruction. We remove gravity/bias
+> (the per-axis mean) and a linear velocity drift to keep the path readable.
+
+<!-- CELL 2.8c | code -> scripts/02_training_snns.py -->
+*(No task — reconstruct and plot one swing's 3D trajectory, coloured by acceleration
+magnitude. Change `sample_idx` to explore other trials and classes.)*
 
 <!-- CELL 2.9 | markdown -->
 ## Training

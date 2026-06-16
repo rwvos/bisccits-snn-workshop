@@ -188,6 +188,71 @@ def plot_confusion_matrices(cms, class_names, model_names, normalize=True):
     return fig
 
 
+def plot_swing_3d(
+    accel: np.ndarray,
+    dt: float = 0.1,
+    title: str = "Reconstructed swing trajectory",
+    ax=None,
+):
+    """Double-integrate a 3-axis accelerometer trial into a 3D path and draw it,
+    colouring the path by acceleration magnitude.
+
+    ``accel`` has shape (T, 3): the three accelerometer axes (ax, ay, az) over time.
+    Pass the *un-normalized* signal so the axes keep their true relative scale.
+
+    Reconstructing position from acceleration means integrating twice, which makes
+    sensor noise/bias drift accumulate -- so this is an *illustrative* shape, not a
+    metric reconstruction. We reduce drift two ways: remove the per-axis mean
+    (gravity + DC offset) before integrating, and subtract a linear trend from the
+    velocity so the path does not run off in one direction.
+    """
+    from mpl_toolkits.mplot3d import Axes3D  # noqa: F401  (registers '3d' projection)
+    from mpl_toolkits.mplot3d.art3d import Line3DCollection
+
+    accel = np.asarray(accel, dtype=np.float64)
+    T = accel.shape[0]
+    t = np.arange(T)
+
+    # Keep only the dynamic part of the acceleration (drop gravity + sensor bias).
+    a = accel - accel.mean(axis=0, keepdims=True)
+    # Integrate: acceleration -> velocity -> position (cumulative trapezoid).
+    vel = np.cumsum(a, axis=0) * dt
+    vel -= np.outer(t / (T - 1), vel[-1])          # remove linear velocity drift
+    pos = np.cumsum(vel, axis=0) * dt
+    pos -= pos.mean(axis=0, keepdims=True)         # centre the path on the origin
+
+    # One coloured segment per step; colour = acceleration magnitude at that step.
+    amag = np.linalg.norm(a, axis=1)
+    points = pos.reshape(-1, 1, 3)
+    segments = np.concatenate([points[:-1], points[1:]], axis=1)
+
+    fig = None
+    if ax is None:
+        fig = plt.figure(figsize=(6.5, 5.5))
+        ax = fig.add_subplot(111, projection="3d")
+
+    lc = Line3DCollection(segments, cmap="viridis", linewidth=3)
+    lc.set_array(amag[:-1])
+    ax.add_collection3d(lc)
+    ax.scatter(*pos[0], color="tab:green", s=45, label="start")
+    ax.scatter(*pos[-1], color="tab:red", s=45, label="end")
+
+    # Equal aspect: a cube big enough to contain the whole path, centred on it.
+    centre = pos.mean(axis=0)
+    span = (pos.max(axis=0) - pos.min(axis=0)).max() / 2 + 1e-9
+    ax.set_xlim(centre[0] - span, centre[0] + span)
+    ax.set_ylim(centre[1] - span, centre[1] + span)
+    ax.set_zlim(centre[2] - span, centre[2] + span)
+    ax.set_xlabel("x"); ax.set_ylabel("y"); ax.set_zlabel("z")
+    ax.set_title(title)
+    ax.legend(fontsize=8, loc="upper left")
+    if fig is not None:
+        cb = fig.colorbar(lc, ax=ax, fraction=0.03, pad=0.1)
+        cb.set_label("acceleration magnitude (dynamic)")
+        fig.tight_layout()
+    return ax
+
+
 def plot_firing_rates(rates_per_layer: list[np.ndarray], title: str = "Firing rates"):
     """Histogram of per-neuron firing probability for each layer.
 

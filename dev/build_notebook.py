@@ -10,11 +10,13 @@ Output: BISCCITS_SNN_Workshop.ipynb at the repo root.
 Dev-only; not part of the participant deliverable.
 """
 
+import base64
 import json
 import os
 import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+CONTENT = os.path.join(ROOT, "content")
 CHAPTERS = ["01_defining_snns", "02_training_snns", "03_evaluating_snns"]
 OUT = os.path.join(ROOT, "BISCCITS_SNN_Workshop.ipynb")
 
@@ -48,6 +50,32 @@ else:
 
 MD_MARKER = re.compile(r"^<!--\s*CELL\s+(\S+)\s*\|\s*(markdown|code)\b.*-->\s*$")
 PY_MARKER = re.compile(r"^#\s*%%\s*CELL\s+(\S+)\s*\|\s*code\b.*$")
+
+# Markdown image syntax: ![alt](path "optional-title"). We inline any image that
+# resolves inside content/ as a base64 data URI so the notebook is self-contained on
+# Colab (external URLs are left untouched). An optional title of the form
+# `"width=480"` sets the rendered width.
+IMG_MARKER = re.compile(r'!\[([^\]]*)\]\(([^)\s]+)(?:\s+"([^"]*)")?\)')
+IMG_MIME = {".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".png": "image/png",
+            ".gif": "image/gif", ".svg": "image/svg+xml", ".webp": "image/webp"}
+
+
+def embed_images(text):
+    """Replace markdown image refs to files in content/ with base64 <img> tags."""
+    def repl(m):
+        alt, rel, title = m.group(1), m.group(2), m.group(3)
+        path = os.path.normpath(os.path.join(CONTENT, rel))
+        if not os.path.isfile(path):
+            return m.group(0)  # external URL or missing file: leave as-is
+        mime = IMG_MIME.get(os.path.splitext(path)[1].lower(), "application/octet-stream")
+        with open(path, "rb") as fh:
+            b64 = base64.b64encode(fh.read()).decode("ascii")
+        width = ""
+        if title and title.startswith("width="):
+            width = f' width="{title.split("=", 1)[1]}"'
+        return (f'<img alt="{alt}"{width} style="max-width:100%;height:auto;" '
+                f'src="data:{mime};base64,{b64}">')
+    return IMG_MARKER.sub(repl, text)
 
 
 def sort_key(cell_id):
@@ -92,6 +120,8 @@ def parse_python(path):
 
 
 def cell(kind, text):
+    if kind == "markdown":
+        text = embed_images(text)
     src = text.splitlines(keepends=True)
     base = {"cell_type": kind, "metadata": {}, "source": src}
     if kind == "code":

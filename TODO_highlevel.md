@@ -9,7 +9,6 @@
 - application connect; racketsports e.g. smartwatch; you want to know your swing speed or howmany times a back/forehand
 - focus on implementation/interactions vs lecture format
 - visualizations
-    - include racketsports photo of dataset (the 2 people playing games)
     - include integrated trajectory for acceleration data as example of data (3d render of curves)
 - f 
 - introduce open questions for fast-audience to answer
@@ -20,5 +19,3 @@
     - sg w. custom autograd vs FGJ (forward gradient injection)
     - other neuron dynamics
     - efficiency (# of operations/MAC) vs task performance - maybe setup a 2d grid with pareto frontier with pretrained model?
-
--

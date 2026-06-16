@@ -14,7 +14,7 @@ import matplotlib.pyplot as plt
 from snn_workshop import set_seed, get_device
 from snn_workshop.viz import (
     plot_training_curves, plot_metric_comparison, plot_method_grid,
-    plot_runtime_bar, plot_confusion_matrices,
+    plot_runtime_bar, plot_confusion_matrices, plot_swing_3d,
 )
 
 set_seed(0)
@@ -113,6 +113,23 @@ X_train = torch.tensor(ds.X_train, device=DEVICE)
 y_train = torch.tensor(ds.y_train, device=DEVICE)
 X_test = torch.tensor(ds.X_test, device=DEVICE)
 y_test = torch.tensor(ds.y_test, device=DEVICE)
+
+
+# %% CELL 2.8c | code  (visualise one swing as a 3D trajectory -- not a task)
+# Reconstruct the racket swing from its accelerometer signal: integrate acceleration
+# twice (-> velocity -> position) to trace the watch's path through space, and colour
+# the path by how hard the watch is accelerating at each moment.
+# We use the *un-normalized* data here so the three accelerometer axes keep their true
+# relative scale (the normalized `ds` rescales each channel independently).
+ds_raw = load_racket_sports(normalize=False)
+
+sample_idx = 0                                   # try other trials by changing this
+accel = ds_raw.X_train[sample_idx, :, :3]        # channels 0-2 = 3-axis accelerometer
+label = ds_raw.class_names[ds_raw.y_train[sample_idx]]
+
+# RacketSports is sampled at 10 Hz, so each timestep is dt = 0.1 s.
+plot_swing_3d(accel, dt=0.1, title=f"Swing trajectory — {label}")
+plt.show()
 
 
 # %% CELL 2.10 | code  (shared training / evaluation loop -- not a task)
