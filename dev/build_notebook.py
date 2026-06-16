@@ -37,11 +37,13 @@ SETUP_CODE = '''# Install the workshop package (and its dependencies, e.g. aeon)
 import importlib.util, subprocess, sys
 
 REPO_URL = "https://github.com/rwvos/bisccits-snn-workshop.git"  # workshop repository
+REPO_REF = "main"   # branch, tag, or commit to install (e.g. "main", "dev", "v0.1.0")
 
 if importlib.util.find_spec("snn_workshop") is None:
-    print(f"Installing snn_workshop (+ aeon and other dependencies) from {REPO_URL} ...")
+    spec = f"git+{REPO_URL}@{REPO_REF}"
+    print(f"Installing snn_workshop (+ aeon and other dependencies) from {spec} ...")
     subprocess.run(
-        [sys.executable, "-m", "pip", "install", "-q", f"git+{REPO_URL}"],
+        [sys.executable, "-m", "pip", "install", "-q", spec],
         check=True,
     )
     print("Installation complete.")
