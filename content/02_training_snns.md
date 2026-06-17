@@ -6,11 +6,15 @@ In Chapter 1 we built a single LIF neuron and met the surrogate gradient. Now we
 1. stack LIF neurons into a **deep spiking network**,
 2. train it on a real movement-sensor dataset with **backpropagation through time** using
    the surrogate gradient, and
-3. make training **fast** with *forward-gradient injection* + `torch.compile`,
-   benchmarking against a conventional MLP and a GRU.
+3. **benchmark** it against a conventional MLP and a GRU.
 
 > **Objective.** Train a 3-layer SNN end-to-end, and understand *why* the spike's
-> non-differentiability is not an obstacle — and how to keep training efficient.
+> non-differentiability is not an obstacle.
+
+> **Bonus.** A custom `autograd.Function` is the most explicit way to write the
+> surrogate, but it blocks `torch.compile`. The optional bonus at the **end of the
+> notebook** rewrites the spike as *forward-gradient injection* — one differentiable
+> expression — and uses `torch.compile` for a large speed-up. Get there if you have time.
 
 <!-- CELL 2.1 | markdown -->
 ## From one neuron to a deep network
@@ -48,8 +52,9 @@ define the forward pass (the hard spike) and *override* the backward pass to use
 smooth surrogate from Chapter 1 (the derivative of a sigmoid).
 
 This is the most explicit way to write it, and it makes the "different forward vs
-backward" idea concrete. Its one drawback — which motivates Subtask 3 — is that a
-custom `autograd.Function` cannot be traced by `torch.compile`.
+backward" idea concrete. Its one drawback — which the optional bonus at the end of the
+notebook addresses — is that a custom `autograd.Function` cannot be traced by
+`torch.compile`.
 
 <!-- CELL 2.4 | code -> scripts/02_training_snns.py -->
 **TASK.** Implement `SpikeFunction(torch.autograd.Function)`: `forward` returns
@@ -145,37 +150,6 @@ To judge the SNN we train two conventional networks of matched depth/width (3 la
 <!-- CELL 2.12 | code -> scripts/02_training_snns.py -->
 *(No task — train the MLP and GRU baselines.)*
 
-<!-- CELL 2.13 | markdown -->
-## Subtask 3 — Faster training: forward-gradient injection + `torch.compile`
-
-Our custom `autograd.Function` works, but it forces a "graph break": `torch.compile`
-cannot fuse the unrolled time loop, so each of the 30 steps pays Python/kernel-launch
-overhead. The fix is to express the surrogate **without** a custom Function, as a
-single differentiable expression — *forward-gradient injection*:
-
-```python
-spike = (x >= 0).float().detach() + (surr - surr.detach())
-```
-
-- **Forward:** `surr - surr.detach() == 0`, so the value is exactly the hard spike.
-- **Backward:** the only non-detached term is `surr`, so the gradient is `d surr/dx` —
-  our surrogate.
-
-With `surr = x` this is the plain *straight-through estimator*; with
-`surr = σ(slope·x)` we recover the smooth sigmoid surrogate. Because it is one ordinary
-expression (no custom Function), the whole model is now traceable, and
-`torch.compile` can fuse the time loop for a large speed-up.
-
-> **Note.** `torch.compile` needs a backend (Inductor/Triton) that ships on the Colab
-> GPU runtime. On some local setups (e.g. Windows) it is unavailable; the code then
-> falls back to eager mode automatically. Run this on Colab to see the speed-up.
-
-<!-- CELL 2.14 | code -> scripts/02_training_snns.py -->
-**TASK.** Implement `spike_fgi(x, slope)` as the single-line forward-gradient
-injection above, rebuild the SNN with it, wrap it in `torch.compile`, and train.
-Compare its wall-clock time and accuracy with the custom-autograd version — accuracy
-should match (same surrogate), but the compiled model trains faster.
-
 <!-- CELL 2.15 | markdown -->
 ## Results & visualizations
 
@@ -185,10 +159,9 @@ table and three plots. Headlines to expect:
 
 - The **SNN reaches accuracy competitive with the MLP**, a little below the GRU — a
   good result for a spiking network on a small dataset.
-- **The two SNN variants (custom-autograd vs forward-gradient injection) reach the
-  same accuracy** — they use the identical surrogate. Any small difference is just
-  random fluctuation from seeding. They differ only in *runtime*.
-- On Colab, the **compiled** FGI SNN trains markedly faster than the eager one.
+- The SNN's **training time** stands out: its Python-level unrolled time loop is slower
+  than the single fused ops of the MLP/GRU. The optional bonus at the end of the
+  notebook shows how to close that gap with `torch.compile`.
 
 We also save the trained SNN to `checkpoints/` — Chapter 3 loads it.
 
@@ -226,11 +199,10 @@ optimization speed and generalization are visible at a glance.
 ### Training time
 
 Training time is a **single number per run** — the total wall-clock seconds for the
-fixed number of epochs. A bar plot makes the comparison clear. Note the two SNN
-variants: custom-autograd vs forward-gradient injection (and, on Colab, the compiled
-variant), which is where the FGI + `torch.compile` speed-up shows up. The MLP and GRU
-are fast because their layers are single fused ops; the eager SNN pays for its
-Python-level unrolled time loop — exactly what compilation removes.
+fixed number of epochs. A bar plot makes the comparison clear. The MLP and GRU are fast
+because their layers are single fused ops; the SNN pays for its Python-level unrolled
+time loop. That overhead is exactly what `torch.compile` removes in the optional bonus
+at the end of the notebook.
 
 <!-- CELL 2.20 | code -> scripts/02_training_snns.py -->
 *(No task — bar plot of per-run training time.)*

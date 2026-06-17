@@ -231,45 +231,8 @@ report("MLP", train_model(mlp))
 gru = GRUClassifier(ds.n_channels, 64, 3, ds.n_classes)
 report("GRU", train_model(gru))
 
-
-# %% CELL 2.14 | code  # TASK: forward-gradient injection + torch.compile
-def spike_fgi(x, slope=10.0):
-    """Same surrogate as SpikeFunction, but as one compilable expression.
-
-    forward  : (x >= 0)                  because (surr - surr.detach()) == 0
-    backward : d/dx sigmoid(slope * x)   it flows through the non-detached surr term
-    """
-    hard = (x >= 0).float()
-    surr = torch.sigmoid(slope * x)
-    return hard.detach() + (surr - surr.detach())
-
-
-# Identical architecture, swap in the compilable spike, then torch.compile it.
-snn_fgi = DeepSNN(ds.n_channels, hidden=64, n_layers=3, n_classes=ds.n_classes,
-                  beta=0.9, threshold=1.0, slope=10.0, spike_fn=spike_fgi)
-
-# torch.compile needs a working Inductor/Triton backend. That ships on the Colab
-# (Linux) GPU runtime where this workshop runs; on Windows it is typically absent, so
-# we skip it there (set SNN_FORCE_COMPILE=1 to try anyway).
-import sys
-can_compile = sys.platform != "win32" or os.environ.get("SNN_FORCE_COMPILE") == "1"
-
-if can_compile:
-    try:
-        compiled = torch.compile(snn_fgi)
-        _ = compiled(X_train[:8])        # trigger compilation (slow the first time)
-        report("SNN (FGI + compile)", train_model(compiled))
-    except Exception as e:
-        print("torch.compile failed; training FGI model eagerly instead.")
-        print("  reason:", repr(e)[:200])
-        report("SNN (FGI, eager)", train_model(snn_fgi))
-else:
-    print("Skipping torch.compile on this platform (no backend); training eagerly.")
-    print("On the Colab GPU runtime this cell trains a compiled model -- much faster.")
-    report("SNN (FGI, eager)", train_model(snn_fgi))
-
-# Keep the trained models for the confusion-matrix cell (use the FGI SNN as "SNN").
-models = {"MLP": mlp, "SNN": snn_fgi, "GRU": gru}
+# Keep the trained models for the confusion-matrix cell.
+models = {"MLP": mlp, "SNN": snn, "GRU": gru}
 
 
 # %% CELL 2.16 | code  (summary table + save checkpoint for Chapter 3 -- not a task)
@@ -280,7 +243,7 @@ for name, res in results.items():
 
 os.makedirs("checkpoints", exist_ok=True)
 ckpt = {
-    "state_dict": snn_fgi.state_dict(),
+    "state_dict": snn.state_dict(),
     "config": dict(n_in=ds.n_channels, hidden=64, n_layers=3, n_classes=ds.n_classes,
                    beta=0.9, threshold=1.0, slope=10.0),
     "class_names": ds.class_names,

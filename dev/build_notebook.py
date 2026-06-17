@@ -17,7 +17,8 @@ import re
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 CONTENT = os.path.join(ROOT, "content")
-CHAPTERS = ["01_defining_snns", "02_training_snns", "03_evaluating_snns"]
+CHAPTERS = ["01_defining_snns", "02_training_snns", "03_evaluating_snns",
+            "04_bonus_fgi"]
 OUT = os.path.join(ROOT, "BISCCITS_SNN_Workshop.ipynb")
 
 # Injected as the first two cells: install the workshop package + dependencies so the

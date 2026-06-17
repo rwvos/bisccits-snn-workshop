@@ -1,7 +1,7 @@
 # %% [chapter 3] Evaluating Spiking Neural Networks -- solution script
 # Paired with content/03_evaluating_snns.md (see CONVENTIONS.md for the cell mapping).
 #
-# In the assembled notebook this chapter reuses the trained `snn_fgi` model and the
+# In the assembled notebook this chapter reuses the trained `snn` model and the
 # classes/data already defined in Chapter 2 (single kernel). To keep this script
 # runnable on its own we import the reference model and reload the saved checkpoint.
 
@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 
 from snn_workshop import set_seed, get_device
 from snn_workshop.data import load_racket_sports
-from snn_workshop.models import DeepSNN, spike_fgi
+from snn_workshop.models import DeepSNN, spike_autograd
 from snn_workshop.viz import plot_spike_raster, plot_firing_rates
 
 set_seed(0)
@@ -27,13 +27,13 @@ y_test = torch.tensor(ds.y_test, device=DEVICE)
 ckpt_path = "checkpoints/snn_racketsports.pt"
 if os.path.exists(ckpt_path):
     ckpt = torch.load(ckpt_path, map_location=DEVICE, weights_only=False)
-    snn = DeepSNN(spike_fn=spike_fgi, **ckpt["config"]).to(DEVICE)
+    snn = DeepSNN(spike_fn=spike_autograd, **ckpt["config"]).to(DEVICE)
     snn.load_state_dict(ckpt["state_dict"])
     print("loaded trained SNN from", ckpt_path)
 else:
     print("WARNING: no checkpoint found -- run Chapter 2 first. Using an untrained SNN.")
     snn = DeepSNN(ds.n_channels, hidden=64, n_layers=3, n_classes=ds.n_classes,
-                  spike_fn=spike_fgi).to(DEVICE)
+                  spike_fn=spike_autograd).to(DEVICE)
 snn.eval()
 
 

@@ -104,9 +104,12 @@ result — while the flatten-MLP, for the caveats above, is a different kind of 
 ## Wrap-up
 
 Across three chapters you defined a spiking neuron from its equations, trained a deep
-SNN with surrogate gradients (and made it compile-friendly with forward-gradient
-injection), and saw concretely where its inference efficiency comes from. The same
-recipe scales to larger networks and to neuromorphic hardware, where sparse,
-event-driven computation turns into real energy savings.
+SNN with surrogate gradients, and saw concretely where its inference efficiency comes
+from. The same recipe scales to larger networks and to neuromorphic hardware, where
+sparse, event-driven computation turns into real energy savings.
+
+> **Still have time?** Continue to the optional **bonus** at the end of the notebook:
+> it rewrites the spike as *forward-gradient injection* so the whole model becomes
+> `torch.compile`-friendly, and measures the training speed-up.
 
 **Thank you for joining the BISCCITS SNN workshop!**
