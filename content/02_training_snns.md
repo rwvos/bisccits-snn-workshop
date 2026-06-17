@@ -11,10 +11,9 @@ In Chapter 1 we built a single LIF neuron and met the surrogate gradient. Now we
 > **Objective.** Train a 3-layer SNN end-to-end, and understand *why* the spike's
 > non-differentiability is not an obstacle.
 
-> **Bonus.** A custom `autograd.Function` is the most explicit way to write the
-> surrogate, but it blocks `torch.compile`. The optional bonus at the **end of the
-> notebook** rewrites the spike as *forward-gradient injection* — one differentiable
-> expression — and uses `torch.compile` for a large speed-up. Get there if you have time.
+> **Bonus.** The optional bonus at the **end of the  notebook** rewrites the spike as 
+> *forward-gradient injection* — one differentiable expression — and uses `torch.compile` 
+> for a large speed-up. Get there if you have time.
 
 <!-- CELL 2.1 | markdown -->
 ## From one neuron to a deep network
@@ -40,8 +39,7 @@ logits go into a standard **cross-entropy** classification loss.
 > class. Averaging integrates evidence across the whole sequence into one prediction.
 
 <!-- CELL 2.2 | code -> scripts/02_training_snns.py -->
-**Setup.** Imports and device selection (GPU if available — useful for the compile
-demo later).
+**Setup.** Imports and device selection.
 
 <!-- CELL 2.3 | markdown -->
 ## Subtask 1 — The spike with a surrogate gradient
@@ -95,7 +93,7 @@ streamed its accelerometer and gyroscope.
 | train / test | **151 / 152** trials |
 
 Each trial is one stroke; the task is to identify the sport **and** the stroke. It is
-small (fast to train) yet genuinely temporal — a good fit for spiking models. We
+small (fast to train) yet temporal — a good fit for spiking models. We
 z-score each channel using training-set statistics, feed the 6 channels as the input
 current at each of the 30 timesteps, and read out 4 class logits.
 

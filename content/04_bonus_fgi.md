@@ -56,7 +56,7 @@ Accuracy should match (same surrogate); the compiled model should train faster.
   back to eager and the two times are similar.)
 - **Why it works:** removing the custom `autograd.Function` removes the graph break, so
   `torch.compile` can fuse the whole unrolled time loop into efficient kernels.
-- This is the same surrogate you would now plug into larger SNNs — fast to train, ready
+- This is the same surrogate you would now plug into larger SNNs: fast to train, ready
   for `torch.compile`.
 
-**That's the speed story — thanks again for joining the BISCCITS SNN workshop!**
+**Thanks again for joining the BISCCITS SNN workshop!**

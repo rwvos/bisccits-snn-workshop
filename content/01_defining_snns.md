@@ -3,7 +3,7 @@
 
 **BISCCITS workshop · Spiking Neural Networks**
 
-Welcome! Over three chapters we will go from a single biological-style neuron to a
+Welcome! Over three chapters we will go from a single biologically-inspired neuron to a
 *trained, efficient* spiking neural network (SNN), and we will measure exactly where
 that efficiency comes from.
 
@@ -11,21 +11,22 @@ that efficiency comes from.
   and how do we write them down so a computer can simulate them?
 - **Chapter 2 — Training SNNs.** How do we train a network of spiking neurons with
   the same machinery (backpropagation) used for ordinary deep nets, despite the spike
-  being non-differentiable — and how do we make it *fast*?
+  being non-differentiable?
 - **Chapter 3 — Evaluating SNNs.** Once trained, what does the network actually do at
   inference, and how much cheaper is it than a conventional network?
+  **Bonus — Can we make it faster?** 
 
-This workshop assumes you are comfortable with the *biology* of neurons but **not**
-with machine learning. We introduce every ML idea from scratch.
+This workshop assumes you are slightly comfortable with the *biology* of neurons but not necessarily 
+with machine learning and PyTorch.
 
 > **Objective of Chapter 1.** Implement a leaky integrate-and-fire (LIF) neuron from
-> its equations, see its dynamics, and understand the one trick that will later let us
+> its equations, see its dynamics, and understand the trick that will later let us
 > train spiking networks: the *surrogate gradient*.
 
 <!-- CELL 1.1 | markdown -->
 ## From a biological neuron to a leaky integrate-and-fire model
 
-A biological neuron integrates incoming current on its membrane. The membrane leaks
+A biological neuron integrates incoming current in its membrane potential. The membrane leaks
 charge over time, so it behaves like a **low-pass filter**: steady input charges it
 up, and when the input stops it relaxes back toward rest. When the membrane potential
 crosses a **threshold**, the neuron emits a **spike** and its potential is **reset**.
@@ -63,7 +64,7 @@ characteristic "sawtooth" membrane trace.
 
 <!-- CELL 1.4 | code -> scripts/01_defining_snns.py -->
 **TASK.** Implement `lif_simulate(current, beta, threshold, v_reset)` returning the
-membrane trace `mem` and the binary `spikes` array. Use a plain Python loop over
+membrane trace `mem` and the binary `spikes` array for an array `current` that contains input currents for a certain number of timesteps. Use a plain Python loop over
 timesteps — clarity first; we move to tensors in Chapter 2.
 
 <!-- CELL 1.5 | markdown -->
@@ -91,18 +92,18 @@ a larger `tau_mem` charges more slowly and fires less often.
 <!-- CELL 1.9 | markdown -->
 ## The problem we will face in Chapter 2 — and the surrogate gradient
 
-To *train* a network we need gradients: how does the loss change if we nudge a weight?
+To *train* a network we need gradients: how does the loss change if we change a particular weight?
 Gradients flow backward through every operation — but the spike is a **Heaviside step
 function** of the membrane potential, and its derivative is **zero everywhere** (and
 undefined exactly at the threshold). No gradient can flow through a spike.
 
 The fix used throughout modern SNN training is the **surrogate gradient**: keep the
-hard spike in the *forward* pass, but in the *backward* pass pretend the spike was a
-smooth function. A common choice is the **derivative of a sigmoid**,
+Heaviside step in the *forward* pass, but in the *backward* pass pretend the spike was a
+smooth function (that approximates the spiking function). A common choice is the **derivative of a sigmoid**,
 $\frac{d}{dV}\,\sigma\!\big(k\,(V - V_\text{thr})\big)$, a bump centred on the
 threshold. The **slope** `k` controls its width: small `k` spreads gradient over a
 wide range of membrane potentials (smooth but biased), large `k` concentrates it near
-the threshold (sharp, closer to the true step but with vanishing gradient away from
+the threshold (sharp, closer to the true step function but with vanishing gradient away from
 threshold).
 
 <!-- CELL 1.10 | code -> scripts/01_defining_snns.py -->
