@@ -30,6 +30,14 @@ $s^{(\ell)}[t]$. We stack three such layers. The network is **feedforward in spa
 carries state from one timestep to the next. *This temporal recurrence is the
 "recurrent dynamics" of the SNN* — there are no explicit lateral weights here.
 
+<div align="center"><img src="tikz_setup/img/ch2_deep_snn.png" width="700"/></div>
+
+<div align="center"><em>From one neuron to a deep SNN: the Chapter-1 LIF unit, stacked into three layers (feedforward in space) feeding a linear readout.</em></div>
+
+<div align="center"><img src="tikz_setup/img/ch2_space_time_grid.png" width="560"/></div>
+
+<div align="center"><em>The same network unrolled in both axes: feedforward in space (↑) and recurrent in time through the membrane state (→).</em></div>
+
 Our input is a length-$T$ multivariate time series. At every timestep we feed one
 sample $x[t]$ into the first layer. After the last spiking layer we apply a linear
 **readout** at each timestep and **average the logits over time**; the time-averaged
@@ -37,6 +45,10 @@ logits go into a standard **cross-entropy** classification loss.
 
 > Why average over time? Each timestep produces a noisy, spike-driven vote for each
 > class. Averaging integrates evidence across the whole sequence into one prediction.
+
+<div align="center"><img src="tikz_setup/img/ch2_readout_loss.png" width="760"/></div>
+
+<div align="center"><em>The readout: a linear layer per timestep produces logits, which are averaged over time and compared to the label with cross-entropy.</em></div>
 
 <!-- CELL 2.2 | code -> scripts/02_training_snns.py -->
 **Setup.** Imports and device selection.
@@ -97,6 +109,10 @@ small (fast to train) yet temporal — a good fit for spiking models. We
 z-score each channel using training-set statistics, feed the 6 channels as the input
 current at each of the 30 timesteps, and read out 4 class logits.
 
+<div align="center"><img src="tikz_setup/img/ch2_input_tensor.png" width="700"/></div>
+
+<div align="center"><em>Each trial is a 6-channel × 30-timestep array; the network reads one column (one timestep) at a time.</em></div>
+
 <!-- CELL 2.8 | code -> scripts/02_training_snns.py -->
 **Load the data** with the helper (`aeon` downloads it automatically) and move the
 tensors to the device.
@@ -144,6 +160,10 @@ To judge the SNN we train two conventional networks of matched depth/width (3 la
 - **GRU** — a continuous-valued **recurrent** network, the natural non-spiking
   counterpart of our SNN (it too processes the sequence step by step). This is the
   apples-to-apples baseline we will return to in Chapter 3.
+
+<div align="center"><img src="tikz_setup/img/ch2_three_architectures.png" width="660"/></div>
+
+<div align="center"><em>The three models on the same input: the MLP flattens time, while the GRU and SNN process it step by step and pool over time.</em></div>
 
 <!-- CELL 2.12 | code -> scripts/02_training_snns.py -->
 *(No task — train the MLP and GRU baselines.)*

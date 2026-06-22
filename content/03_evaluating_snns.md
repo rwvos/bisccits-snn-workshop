@@ -64,6 +64,10 @@ Here is the crux of SNN efficiency.
   *no multiply*. When it is 0 there is **nothing to do at all**. So the SNN's cost
   scales with the **number of spikes**, not the number of synapses.
 
+<div align="center"><img src="tikz_setup/img/ch3_mac_vs_ac.png" width="680"/></div>
+
+<div align="center"><em>The crux: a dense layer multiplies-and-accumulates every input (MAC), while an SNN only accumulates a weight where a spike occurs (AC) and skips the rest.</em></div>
+
 Two things make this cheap: (1) an AC is several times less energy than a MAC (in a
 classic 45 nm estimate, ~0.9 pJ vs ~4.6 pJ for 32-bit FP), and (2) sparsity means few
 ACs are ever performed. On event-driven *neuromorphic* hardware the "do nothing for a
@@ -99,6 +103,10 @@ result — while the flatten-MLP, for the caveats above, is a different kind of 
   little accuracy for far fewer spikes via a **firing-rate regularizer** during
   training (try adding a small penalty on the mean spike count and re-running
   Chapter 2 — accuracy often holds while energy drops).
+
+<div align="center"><img src="tikz_setup/img/ch3_event_driven.png" width="700"/></div>
+
+<div align="center"><em>Dense hardware computes on every clock tick; spiking/neuromorphic hardware works only at spike events and idles (no energy) in between.</em></div>
 
 <!-- CELL 3.10 | markdown -->
 ## Wrap-up

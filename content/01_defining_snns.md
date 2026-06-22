@@ -16,6 +16,8 @@ that efficiency comes from.
   inference, and how much cheaper is it than a conventional network?
   **Bonus — Can we make it faster?** 
 
+<div align="center"><img src="tikz_setup/img/roadmap.png" width="820"/></div>
+
 This workshop assumes you are slightly comfortable with the *biology* of neurons but not necessarily 
 with machine learning and PyTorch.
 
@@ -47,6 +49,10 @@ V[t] &\leftarrow V_\text{reset} \quad \text{if } S[t]=1 && \text{(hard reset)}
 \end{aligned}
 $$
 
+<div align="center"><img src="tikz_setup/img/ch1_lif_neuron.png" width="430"/></div>
+
+<div align="center"><em>The LIF neuron: an input current charges the membrane, which leaks by β each step; on crossing the threshold it emits a spike and hard-resets.</em></div>
+
 `beta` controls memory: `beta -> 1` means a long membrane time constant (slow,
 strongly smoothing), `beta -> 0` means the neuron almost instantly follows its input.
 
@@ -61,6 +67,10 @@ We will integrate the three equations above over time, given an input current `I
 Note the order *inside* each timestep: **integrate → check threshold → reset**. The
 reset applies to the state carried into the *next* step, which produces the
 characteristic "sawtooth" membrane trace.
+
+<div align="center"><img src="tikz_setup/img/ch1_lif_unrolled.png" width="520"/></div>
+
+<div align="center"><em>The same neuron unrolled over time: one copy per timestep, with the membrane state carried forward along β — exactly the loop you will implement.</em></div>
 
 <!-- CELL 1.4 | code -> scripts/01_defining_snns.py -->
 **TASK.** Implement `lif_simulate(current, beta, threshold, v_reset)` returning the
@@ -105,6 +115,10 @@ threshold. The **slope** `k` controls its width: small `k` spreads gradient over
 wide range of membrane potentials (smooth but biased), large `k` concentrates it near
 the threshold (sharp, closer to the true step function but with vanishing gradient away from
 threshold).
+
+<div align="center"><img src="tikz_setup/img/ch1_heaviside_surrogate.png" width="620"/></div>
+
+<div align="center"><em>The spike (Heaviside) has a Dirac-δ derivative that carries no usable gradient; in the backward pass we substitute a smooth surrogate bump.</em></div>
 
 <!-- CELL 1.10 | code -> scripts/01_defining_snns.py -->
 **TASK.** Plot the Heaviside spike together with the sigmoid-derivative surrogate
