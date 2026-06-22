@@ -28,16 +28,20 @@ class SpikeFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, x, slope):
+        # >>> SOLUTION hint="save x (and stash slope on ctx) for the backward pass, then return the hard spike (x >= 0) as a float"
         ctx.save_for_backward(x)
         ctx.slope = slope
         return (x >= 0).float()           # hard spike: 1 if membrane >= threshold
+        # <<< SOLUTION
 
     @staticmethod
     def backward(ctx, grad_output):
+        # >>> SOLUTION hint="surrogate = d/dx sigmoid(slope * x) = slope * sig * (1 - sig); multiply by grad_output, and return None for the slope arg"
         (x,) = ctx.saved_tensors
         sig = torch.sigmoid(ctx.slope * x)
         surrogate = ctx.slope * sig * (1.0 - sig)   # d/dx sigmoid(slope * x)
         return grad_output * surrogate, None         # None: no grad w.r.t. slope
+        # <<< SOLUTION
 
 
 def spike_autograd(x, slope=10.0):
@@ -62,6 +66,7 @@ class LIFLayer(nn.Module):
         v = torch.zeros(B, self.fc.out_features, device=x.device, dtype=x.dtype)
         spikes, mems = [], []
         for t in range(T):
+            # >>> SOLUTION hint="per timestep: current = fc(x[:, t]); leaky-integrate v = beta*v + current; spike s = spike_fn(v - threshold, slope); (record v if return_mem); hard-reset v = v*(1-s); append s"
             current = self.fc(x[:, t, :])                       # input current I[t]
             v = self.beta * v + current                          # leaky integration
             s = self.spike_fn(v - self.threshold, self.slope)    # spike
@@ -69,6 +74,7 @@ class LIFLayer(nn.Module):
                 mems.append(v)
             v = v * (1.0 - s)                                    # hard reset to 0
             spikes.append(s)
+            # <<< SOLUTION
         out = torch.stack(spikes, dim=1)                        # (B, T, out_features)
         if return_mem:
             return out, torch.stack(mems, dim=1)
@@ -90,6 +96,7 @@ class DeepSNN(nn.Module):
         self.readout = nn.Linear(hidden, n_classes)
 
     def forward(self, x, return_spikes=False):
+        # >>> SOLUTION hint="pass x through each LIF layer in turn (collecting each layer's spikes), then apply the readout per timestep and mean over time to get logits"
         s = x
         per_layer = []
         for layer in self.layers:
@@ -99,6 +106,7 @@ class DeepSNN(nn.Module):
         if return_spikes:
             return logits, per_layer
         return logits
+        # <<< SOLUTION
 
 
 # %% CELL 2.8 | code  (load RacketSports -- not a task)

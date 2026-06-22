@@ -44,12 +44,14 @@ def lif_simulate(current, beta, threshold=1.0, v_reset=0.0):
 
     v = v_reset  # state carried between steps
     for t in range(T):
+        # >>> SOLUTION hint="implement the three equations above: leaky integration, then threshold -> spike, then record V and S, then hard reset on a spike"
         v = beta * v + (1.0 - beta) * current[t]   # leaky integration
         s = 1.0 if v >= threshold else 0.0          # spike?
         mem[t] = v                                  # record the value that crossed
         spikes[t] = s
         if s > 0.5:
             v = v_reset                             # hard reset for the next step
+        # <<< SOLUTION
     return mem, spikes
 
 
@@ -79,6 +81,7 @@ taus = [5.0, 20.0, 60.0]
 step = np.zeros(T)
 step[20:] = 1.2
 
+# >>> SOLUTION hint="for each tau: beta = exp(-dt / tau), then m, s = lif_simulate(step, beta=beta). Plot the membrane traces (one line per tau) and the spike times, and print each firing rate s.mean(). A 2-row figure (membrane on top, spikes below) reads well."
 fig, axes = plt.subplots(2, 1, figsize=(9, 5), sharex=True)
 for tau in taus:
     b = np.exp(-dt / tau)
@@ -94,6 +97,7 @@ axes[1].set_yticks([])
 axes[1].set_ylabel("spikes")
 axes[1].set_xlabel("time")
 plt.show()
+# <<< SOLUTION
 
 
 # %% CELL 1.10 | code  # TASK: the surrogate gradient (derivative of a sigmoid)
@@ -101,17 +105,22 @@ plt.show()
 # so gradients cannot flow. During the *backward* pass we replace it with a smooth
 # surrogate: the derivative of a sigmoid sigma(beta_s * v), peaked at threshold.
 def heaviside(v, threshold=1.0):
+    # >>> SOLUTION hint="return 1.0 where v >= threshold, else 0.0 (as float64)"
     return (v >= threshold).astype(np.float64)
+    # <<< SOLUTION
 
 
 def sigmoid_surrogate_grad(v, threshold=1.0, slope=5.0):
     """d/dv of sigma(slope * (v - threshold)) -- a bump centred at the threshold."""
+    # >>> SOLUTION hint="let sig = sigmoid(slope * (v - threshold)); the derivative is slope * sig * (1 - sig)"
     x = slope * (v - threshold)
     sig = 1.0 / (1.0 + np.exp(-x))
     return slope * sig * (1.0 - sig)
+    # <<< SOLUTION
 
 
 v = np.linspace(-1.0, 3.0, 400)
+# >>> SOLUTION hint="over this v, plot heaviside(v) as the hard spike, then overlay sigmoid_surrogate_grad(v, slope=...) for a few slopes (e.g. 1, 5, 25) to see how the surrogate sharpens; mark the threshold."
 fig, ax = plt.subplots(figsize=(8, 4))
 ax.plot(v, heaviside(v), color="black", lw=2, label="spike S = H(V - thr)")
 for slope in [1.0, 5.0, 25.0]:
@@ -122,3 +131,4 @@ ax.set_ylabel("value")
 ax.set_title("Heaviside spike vs. sigmoid-derivative surrogate gradient")
 ax.legend(fontsize=8)
 plt.show()
+# <<< SOLUTION

@@ -78,9 +78,11 @@ def spike_fgi(x, slope=10.0):
     forward  : (x >= 0)                  because (surr - surr.detach()) == 0
     backward : d/dx sigmoid(slope * x)   it flows through the non-detached surr term
     """
+    # >>> SOLUTION hint="hard = (x >= 0).float(); surr = sigmoid(slope * x); return hard.detach() + (surr - surr.detach()) so the value is the hard spike but the gradient flows through surr"
     hard = (x >= 0).float()
     surr = torch.sigmoid(slope * x)
     return hard.detach() + (surr - surr.detach())
+    # <<< SOLUTION
 
 
 # A controlled comparison: identical architecture and surrogate, trained two ways.

@@ -36,13 +36,36 @@ implement); the runnable solution lives in the script under the same `N.k`.
 
 ## Assembling the notebook
 
-Walk cells in ascending `N.k`. For each: if `markdown`, take the prose from the `.md`;
-if `code`, take the solution from the `.py` (blanked / partially blanked for the
-participant version). Because ids are shared and ordered, assembly is mechanical.
+Run `python dev/build_notebook.py`. It walks cells in ascending `N.k` and, for each,
+takes markdown prose from the `.md` and code from the `.py`. Because ids are shared and
+ordered, assembly is mechanical. It writes **two** notebooks at the repo root:
+
+- `BISCCITS_SNN_Workshop.ipynb` — full solutions (the answer key).
+- `BISCCITS_SNN_Workshop_participant.ipynb` — the participant deliverable, with task
+  cells blanked (see below).
+
+Both are committed so they can be diffed; the participant one is what gets handed out.
 
 ## Participant vs solution
 
-The scripts contain full solutions so we can test runnability. When generating the
-participant notebook, code cells tagged as **tasks** (marked `# TASK` in the script)
-are reduced to a stub + `# YOUR CODE HERE`; non-task code cells (imports, plotting,
-data loading) are kept as-is.
+The scripts contain full solutions so we can test runnability. A code cell is a **task**
+when its `# %% CELL N.k` marker line contains `# TASK`. Within a task cell, wrap the
+lines the participant should write in solution markers:
+
+```python
+# >>> SOLUTION hint="convert tau to beta = exp(-dt / tau), then simulate"
+b = np.exp(-dt / tau)
+m, s = lif_simulate(step, beta=b)
+# <<< SOLUTION
+```
+
+- **Solution notebook**: the marker lines are stripped, the code is kept.
+- **Participant notebook**: each wrapped region is replaced by `# TODO: <hint>` (only if
+  a `hint="..."` is given) followed by `# YOUR CODE HERE`, indented to match the region
+  so it sits correctly inside a `def`/`for`/`class`. Everything outside the markers —
+  signatures, docstrings, plotting, comparison code — is kept verbatim, which is how a
+  complex task still ships with guiding structure.
+
+Non-task code cells (imports, plotting, data loading) are emitted unchanged. A task cell
+with no markers would be blanked entirely (it has no kept regions), so always wrap the
+solution lines. Markers are plain comments, so the scripts stay runnable and testable.

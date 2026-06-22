@@ -80,11 +80,6 @@ python dev/run_script.py scripts/01_defining_snns.py
 > Inductor/Triton backend (present on the Colab GPU runtime). On platforms without it
 > (e.g. Windows) the code falls back to eager mode automatically.
 
-## Status
-
-Preliminary content + scripts, runnable and tested end-to-end. Next step: assemble the
-participant notebook from the paired files.
-
 ## License
 
-TBD.
+Copyright 2026 Reinier Vos & Stein Stroobants
