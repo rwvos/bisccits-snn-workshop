@@ -130,11 +130,16 @@ class DeepSNN(nn.Module):
 # Non-spiking baselines (matched depth / width)
 # --------------------------------------------------------------------------------
 class MLP(nn.Module):
-    """Flatten the time axis into one feature vector, then a 3-layer MLP."""
+    """Memoryless per-timestep MLP (the honest "no temporal state" baseline).
 
-    def __init__(self, n_in, n_timesteps, hidden=64, n_layers=3, n_classes=4):
+    The *same* small network is applied independently to every timestep's observation
+    vector, giving per-step logits that are averaged over time -- the same readout
+    contract as the SNN/GRU. Unlike them it carries **no state across time**.
+    """
+
+    def __init__(self, n_in, hidden=64, n_layers=3, n_classes=4):
         super().__init__()
-        dims = [n_in * n_timesteps] + [hidden] * (n_layers - 1)
+        dims = [n_in] + [hidden] * (n_layers - 1)
         layers = []
         for i in range(len(dims) - 1):
             layers += [nn.Linear(dims[i], dims[i + 1]), nn.ReLU()]
@@ -142,11 +147,18 @@ class MLP(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.net(x.flatten(start_dim=1))
+        # x: (B, T, C) -> shared net at each timestep -> (B, T, K) -> mean over time
+        B, T, C = x.shape
+        logits_t = self.net(x.reshape(B * T, C)).reshape(B, T, -1)
+        return logits_t.mean(dim=1)
 
 
 class GRUClassifier(nn.Module):
-    """3-layer GRU; classify from the final timestep's top-layer hidden state."""
+    """3-layer GRU with a per-timestep readout averaged over time.
+
+    Same input/output contract as the SNN (per-step logits, mean over time); the only
+    difference from the SNN is the continuous-valued recurrent cell.
+    """
 
     def __init__(self, n_in, hidden=64, n_layers=3, n_classes=4):
         super().__init__()
@@ -154,5 +166,5 @@ class GRUClassifier(nn.Module):
         self.readout = nn.Linear(hidden, n_classes)
 
     def forward(self, x):
-        out, _ = self.gru(x)        # (B, T, hidden)
-        return self.readout(out[:, -1, :])
+        out, _ = self.gru(x)                    # (B, T, hidden)
+        return self.readout(out).mean(dim=1)    # per-step logits, averaged over time

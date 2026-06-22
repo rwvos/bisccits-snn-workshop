@@ -152,18 +152,25 @@ accuracy and training time.)*
 ## Baselines — MLP and GRU
 
 To judge the SNN we train two conventional networks of matched depth/width (3 layers,
-64 units):
+64 units). Crucially, **all three models obey the same contract**: each produces a
+prediction *per timestep*, and we average those logits over time before the loss — the
+exact readout you built for the SNN. They differ only in *how each timestep is computed*
+and *whether information crosses time*:
 
-- **MLP** — flattens the time axis into one long feature vector and classifies it in a
-  single forward pass. Simple and fast, but it is *not* a sequence model: it sees the
-  whole trial at once and ignores temporal order.
+- **MLP** — the *memoryless* baseline. The same small network is applied to each
+  timestep's 6-channel vector independently, and the per-step predictions are averaged.
+  It carries **no state across time**, so it can never integrate temporal order — its
+  honest deficiency.
 - **GRU** — a continuous-valued **recurrent** network, the natural non-spiking
-  counterpart of our SNN (it too processes the sequence step by step). This is the
-  apples-to-apples baseline we will return to in Chapter 3.
+  counterpart of our SNN: it carries a hidden state across time, reads out at every
+  step, and averages. This is the apples-to-apples baseline we return to in Chapter 3.
+
+Because the three share one input→prediction contract, every later comparison
+(accuracy, training curves, and the Chapter 3 efficiency analysis) is like-for-like.
 
 <div align="center"><img src="tikz_setup/img/ch2_three_architectures.png" width="660"/></div>
 
-<div align="center"><em>The three models on the same input: the MLP flattens time, while the GRU and SNN process it step by step and pool over time.</em></div>
+<div align="center"><em>The three models on the same input: each predicts at every timestep and pools the logits over time. The MLP is memoryless (no state across time), while the GRU and SNN carry state along the sequence.</em></div>
 
 <!-- CELL 2.12 | code -> scripts/02_training_snns.py -->
 *(No task — train the MLP and GRU baselines.)*
@@ -175,8 +182,9 @@ Each `train_model` call returned a **history** (per-epoch train/test loss and
 accuracy) and a training-only **wall-clock time**. We now read those out as a summary
 table and three plots. Headlines to expect:
 
-- The **SNN reaches accuracy competitive with the MLP**, a little below the GRU — a
-  good result for a spiking network on a small dataset.
+- The **SNN reaches accuracy in the same ballpark as the baselines** — a little below
+  the MLP and GRU on this small dataset, which is a good result for a spiking network
+  (and Chapter 3 shows what it buys you in efficiency).
 - The SNN's **training time** stands out: its Python-level unrolled time loop is slower
   than the single fused ops of the MLP/GRU. The optional bonus at the end of the
   notebook shows how to close that gap with `torch.compile`.

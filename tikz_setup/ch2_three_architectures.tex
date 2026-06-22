@@ -1,6 +1,7 @@
 % F - three baselines side by side (Chapter 2): MLP vs GRU vs SNN, all consuming
 % the SAME length-T multivariate input so they are directly comparable.
-% MLP: flatten -> dense -> logits (ignores time order).
+% MLP: per-timestep MLP applied independently each step (NO hidden state) ->
+%      mean over time -> logits.
 % GRU: unrolled recurrent cell with real-valued hidden state h_t -> logits.
 % SNN: unrolled LIF (lifdot) emitting spikes with beta state -> mean over time -> logits.
 \documentclass[border=2pt]{standalone}
@@ -32,7 +33,6 @@
 
   % horizontal anchors (shared logits column; mean-over-time for both recurrent rows)
   \def\colInput{0}      % left edge of input grid
-  \def\colA{2.0}        % MLP flatten block
   \def\xcellA{2.9}      % first unrolled recurrent cell
   \def\xcellB{4.3}      % second unrolled cell
   \def\xcellC{5.7}      % third unrolled cell
@@ -54,18 +54,25 @@
     \end{scope}}
 
   % =================================================================
-  % ROW 1 : MLP   (flatten -> dense -> logits)
+  % ROW 1 : MLP   (per-timestep MLP, NO hidden state) -> mean over time -> logits
+  % Same layout as GRU/SNN, but with NO arrows between blocks (not recurrent).
   % =================================================================
   \node[iolabel, font=\footnotesize\bfseries] at (\colInput-0.2,\rowMLP+0.95) {MLP};
   \drawinput{\colInput}{\rowMLP-0.4}
-  \node[block, minimum width=15mm] (mlpFlat) at (\colA+0.6,\rowMLP) {flatten};
-  \node[block, minimum width=18mm, align=center]
-        (mlpDense) at (\xcellB+0.3,\rowMLP) {dense\\ layers};
-  \draw[synapse] (\colInput+1.05,\rowMLP) -- (mlpFlat.west);
-  \draw[synapse] (mlpFlat.east) -- (mlpDense.west);
-  \draw[synapse] (mlpDense.east) -- (\colLog-0.2,\rowMLP);
+  \node[block, minimum width=11mm] (m1) at (\xcellA,\rowMLP) {MLP};
+  \node[block, minimum width=11mm] (m2) at (\xcellB,\rowMLP) {MLP};
+  \node[block, minimum width=11mm] (m3) at (\xcellC,\rowMLP) {MLP};
+  \draw[synapse] (\colInput+1.05,\rowMLP) -- (m1.west);
+  % each MLP reads its own input column; deliberately NO arrows between blocks
+  \foreach \m in {m1, m2, m3}{
+    \draw[current] ($(\m.south)+(0,-0.45)$) -- (\m.south);
+  }
+  \node[block, minimum width=14mm, align=center]
+        (mmean) at (\xmean,\rowMLP) {mean over\\ time};
+  \draw[synapse] (m3.east) -- (mmean.west);
+  \draw[synapse] (mmean.east) -- (\colLog-0.2,\rowMLP);
   \drawlogits{\colLog}{\rowMLP}
-  \node[fignote] at (\xcellB,\rowMLP-0.95) {ignores time order};
+  \node[fignote] at (\xcellB,\rowMLP-0.95) {no hidden state passed through time};
 
   % =================================================================
   % ROW 2 : GRU  (unrolled cell, hidden state h_t) -> mean over time -> logits

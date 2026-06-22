@@ -84,17 +84,21 @@ T, C, H, K = ds.n_timesteps, ds.n_channels, 64, ds.n_classes
 L = len(per_layer)
 mean_rate = [float(r.mean()) for r in rates_per_layer]   # per hidden layer
 
-# SNN: first layer sees real-valued input (MACs); hidden layers see spikes (ACs).
+# All three models run per timestep and pool over time; we count ops over the full
+# T-step sequence so the comparison is like-for-like.
+# SNN: first layer sees real-valued input (MACs); hidden layers + readout are
+# spike-driven (ACs), so their cost scales with the measured firing rates.
 snn_mac = C * H * T                                       # dense input projection
 snn_ac = 0.0
 for l in range(1, L):                                     # layers 2..L: spike-driven
     snn_ac += (H * T * mean_rate[l - 1]) * H
 snn_ac += (H * T * mean_rate[L - 1]) * K                  # spike-driven readout
 
-# MLP (flatten time): one dense forward, all MACs.
-mlp_mac = (C * T) * H + H * H + H * K
-# GRU: 3 gates x (input->hidden + hidden->hidden) per layer per timestep, all MACs.
-gru_mac = T * (3 * (C * H + H * H) + (L - 1) * 3 * (H * H + H * H)) + H * K
+# MLP (memoryless): the same dense net runs at EACH of the T timesteps, all MACs.
+mlp_mac = T * (C * H + H * H + H * K)
+# GRU: 3 gates x (input->hidden + hidden->hidden) per layer per timestep, plus a
+# per-step readout, all MACs.
+gru_mac = T * (3 * (C * H + H * H) + (L - 1) * 3 * (H * H + H * H) + H * K)
 
 # Energy proxy (45nm, Horowitz 2014): 32-bit FP MAC ~ 4.6 pJ, AC ~ 0.9 pJ.
 E_MAC, E_AC = 4.6, 0.9

@@ -200,10 +200,16 @@ report("SNN (autograd)", train_model(snn))
 
 
 # %% CELL 2.12 | code  (non-spiking baselines -- not a task)
+# Both baselines follow the SAME contract as the SNN: produce a prediction per
+# timestep, then average the logits over time. They differ only in how each timestep
+# is computed and whether state crosses time.
 class MLP(nn.Module):
-    def __init__(self, n_in, n_timesteps, hidden=64, n_layers=3, n_classes=4):
+    """Memoryless per-timestep MLP: the same network is applied to each timestep's
+    observation vector; per-step logits are averaged over time. No state across time."""
+
+    def __init__(self, n_in, hidden=64, n_layers=3, n_classes=4):
         super().__init__()
-        dims = [n_in * n_timesteps] + [hidden] * (n_layers - 1)
+        dims = [n_in] + [hidden] * (n_layers - 1)
         layers = []
         for i in range(len(dims) - 1):
             layers += [nn.Linear(dims[i], dims[i + 1]), nn.ReLU()]
@@ -211,21 +217,26 @@ class MLP(nn.Module):
         self.net = nn.Sequential(*layers)
 
     def forward(self, x):
-        return self.net(x.flatten(start_dim=1))
+        B, T, C = x.shape                                   # (B, T, C)
+        logits_t = self.net(x.reshape(B * T, C)).reshape(B, T, -1)
+        return logits_t.mean(dim=1)                         # mean over time -> (B, K)
 
 
 class GRUClassifier(nn.Module):
+    """3-layer GRU with a per-timestep readout averaged over time (same contract as
+    the SNN); the recurrent cell is the only difference from the SNN."""
+
     def __init__(self, n_in, hidden=64, n_layers=3, n_classes=4):
         super().__init__()
         self.gru = nn.GRU(n_in, hidden, num_layers=n_layers, batch_first=True)
         self.readout = nn.Linear(hidden, n_classes)
 
     def forward(self, x):
-        out, _ = self.gru(x)
-        return self.readout(out[:, -1, :])
+        out, _ = self.gru(x)                                # (B, T, hidden)
+        return self.readout(out).mean(dim=1)               # per-step logits, mean over time
 
 
-mlp = MLP(ds.n_channels, ds.n_timesteps, 64, 3, ds.n_classes)
+mlp = MLP(ds.n_channels, 64, 3, ds.n_classes)
 report("MLP", train_model(mlp))
 
 gru = GRUClassifier(ds.n_channels, 64, 3, ds.n_classes)

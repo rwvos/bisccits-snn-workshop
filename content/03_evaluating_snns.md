@@ -73,18 +73,18 @@ classic 45 nm estimate, ~0.9 pJ vs ~4.6 pJ for 32-bit FP), and (2) sparsity mean
 ACs are ever performed. On event-driven *neuromorphic* hardware the "do nothing for a
 0" part is literal — unused synapses consume no energy.
 
-> **A fair comparison.** Our **MLP** flattens time into a single dense pass, so in raw
-> op-count it looks cheap — but it is *not* a streaming/temporal model and its first
-> weight matrix grows with sequence length. The **GRU** is the like-for-like baseline:
-> a continuous-valued recurrent network that, like the SNN, processes the sequence
-> step by step. That is the comparison to watch.
+> **A like-for-like comparison.** All three models share the same contract — predict
+> per timestep, average over time — so we count operations the same way for each: over
+> the full T-step sequence. The **MLP** (memoryless) and the **GRU** (recurrent) both
+> do **dense MACs at every timestep**; only the SNN replaces those with **sparse ACs**
+> gated by spikes. So this time the SNN is compared fairly against *both* baselines.
 
 <!-- CELL 3.8 | code -> scripts/03_evaluating_snns.py -->
-**TASK.** Using the measured firing rates, estimate the operation counts:
-the SNN's first layer sees real-valued input (MACs) while its hidden/readout layers
-are spike-driven (ACs); the MLP and GRU are all MACs. Convert to an energy proxy and
-compare. **Expect the SNN to use a tiny fraction of the GRU's energy** — the headline
-result — while the flatten-MLP, for the caveats above, is a different kind of model.
+**TASK.** Using the measured firing rates, estimate the operation counts over the whole
+sequence: the SNN's first layer sees real-valued input (MACs) while its hidden/readout
+layers are spike-driven (ACs); the MLP and GRU are dense MACs at every timestep. Convert
+to an energy proxy and compare. **Expect the SNN to use a fraction of the energy of
+*both* the MLP and the GRU** — the headline result, now that all three do the same job.
 
 <!-- CELL 3.9 | markdown -->
 ## Discussion — what this does and does not show
@@ -92,9 +92,9 @@ result — while the flatten-MLP, for the caveats above, is a different kind of 
 - **vs the RNN (GRU):** the SNN does the same job — streaming temporal classification —
   for a fraction of the energy, because it replaces dense per-step MACs with sparse
   ACs. This is the result that matters and it grows with sequence length.
-- **vs the MLP:** raw op-counts can favour a flatten-once MLP on a short, fixed-length
-  trial, but that model is non-causal (needs the whole sequence at once) and scales
-  poorly as $T$ grows. The SNN is causal and event-driven.
+- **vs the MLP:** the memoryless MLP still runs a dense network at *every* timestep, so
+  it too pays MACs the SNN avoids — the SNN is cheaper here as well, while additionally
+  being able to integrate information across time (which the MLP cannot).
 - **It is a proxy, not a hardware measurement.** Real energy depends on memory traffic,
   dataflow, precision and the actual chip; the MAC/AC counts capture the *arithmetic*
   story, which is where neuromorphic hardware wins.
