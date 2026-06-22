@@ -33,7 +33,7 @@ Thumbs.db
 *.ckpt
 
 # Generated during dev runs
-figures/
+# figures/ are tracked on purpose (workshop artifacts, render on GitHub)
 checkpoints/
 
 # LaTeX / TikZ build artifacts
