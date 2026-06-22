@@ -28,7 +28,7 @@ class SpikeFunction(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, x, slope):
-        # >>> SOLUTION hint="save x (and stash slope on ctx) for the backward pass, then return the hard spike (x >= 0) as a float"
+        # >>> SOLUTION hint="save x and slope for the backward pass (see the save_for_backward method specifically), using the context ctx. Then return the hard spike (x >= 0) as a float"
         ctx.save_for_backward(x)
         ctx.slope = slope
         return (x >= 0).float()           # hard spike: 1 if membrane >= threshold

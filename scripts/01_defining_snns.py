@@ -105,7 +105,7 @@ plt.show()
 # so gradients cannot flow. During the *backward* pass we replace it with a smooth
 # surrogate: the derivative of a sigmoid sigma(beta_s * v), peaked at threshold.
 def heaviside(v, threshold=1.0):
-    # >>> SOLUTION hint="return 1.0 where v >= threshold, else 0.0 (as float64)"
+    # >>> SOLUTION
     return (v >= threshold).astype(np.float64)
     # <<< SOLUTION
 
