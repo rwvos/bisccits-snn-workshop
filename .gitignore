@@ -5,6 +5,7 @@ __pycache__/
 .eggs/
 build/
 dist/
+.claude/
 
 # Virtual environments
 .venv/
@@ -34,3 +35,14 @@ Thumbs.db
 # Generated during dev runs
 figures/
 checkpoints/
+
+# LaTeX / TikZ build artifacts
+tikz_setup/*.aux
+tikz_setup/*.log
+tikz_setup/*.out
+tikz_setup/*.synctex.gz
+tikz_setup/*.fls
+tikz_setup/*.fdb_latexmk
+tikz_setup/*.pdf
+tikz_setup/_*.png
+tikz_setup/_preview/

@@ -1,0 +1,108 @@
+% F - readout + time-average + loss (Chapter 2). Demystifies how spike trains
+% become one prediction: last-layer spikes -> linear readout -> per-timestep logits
+% z[t] that MERGE under averaging over time -> softmax -> cross-entropy loss.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % ============================================================
+  % 1) last hidden layer spikes over time : a tiny raster at t=1,2,3
+  %    3 units (rows) x 3 timesteps (columns); filled = spike, empty = silent
+  % ============================================================
+  \def\rasterx{-0.2}                 % x of the leftmost spike column
+  \foreach \t/\dx in {1/0, 2/0.55, 3/1.1}{
+    % column header (timestep)
+    \node[iolabel, text=tabgray] at (\rasterx+\dx, 1.55) {$t{=}\t$};
+  }
+  % spike dots: explicit small pattern so the raster looks alive
+  % rows at y = 1.05, 0.55, 0.05 ; filled = spike, empty = silent
+  % t=1
+  \fill[inkblack] (\rasterx+0,    1.05) circle (1.6pt);
+  \draw[inkblack] (\rasterx+0,    0.55) circle (1.6pt);
+  \fill[inkblack] (\rasterx+0,    0.05) circle (1.6pt);
+  % t=2
+  \draw[inkblack] (\rasterx+0.55, 1.05) circle (1.6pt);
+  \fill[inkblack] (\rasterx+0.55, 0.55) circle (1.6pt);
+  \draw[inkblack] (\rasterx+0.55, 0.05) circle (1.6pt);
+  % t=3
+  \fill[inkblack] (\rasterx+1.1,  1.05) circle (1.6pt);
+  \fill[inkblack] (\rasterx+1.1,  0.55) circle (1.6pt);
+  \draw[inkblack] (\rasterx+1.1,  0.05) circle (1.6pt);
+
+  % bracket + label under the raster
+  \node[iolabel] at (\rasterx+0.55, -0.55) {$s^{(L)}[t]$};
+  \node[iolabel, text=tabgray] at (\rasterx+0.55, -1.05)
+        {last hidden spikes};
+
+  % ============================================================
+  % 2) linear readout block
+  % ============================================================
+  \node[block, minimum width=20mm, minimum height=22mm,
+        align=center] (readout) at (3.0, 0.55)
+        {linear\\ readout\\[1pt] $\Wlayer_{\mathrm{out}}$};
+
+  % spikes -> readout (one synapse arrow per row, converging into the block)
+  \foreach \y in {1.05, 0.55, 0.05}{
+    \draw[synapse] (\rasterx+1.1+0.25, \y) -- (readout.west |- {0,\y});
+  }
+
+  % ============================================================
+  % 3) per-timestep logits z[t] : a short sequence of small vectors
+  %    drawn as little 2-cell stacks at t=1,2,3
+  % ============================================================
+  \def\logitx{5.2}
+  \foreach \t/\yc in {1/1.35, 2/0.55, 3/-0.25}{
+    % a tiny 2-entry vector glyph
+    \draw[draw=inkblack, line width=0.5pt]
+         (\logitx-0.13,\yc-0.17) rectangle (\logitx+0.13,\yc+0.17);
+    \draw[draw=inkblack, line width=0.4pt]
+         (\logitx-0.13,\yc) -- (\logitx+0.13,\yc);
+    \fill[tabpurple!55] (\logitx,\yc+0.085) circle (1.0pt);
+    \fill[tabpurple!55] (\logitx,\yc-0.085) circle (1.0pt);
+    \node[iolabel, right=0.5pt of {(\logitx+0.13,\yc)}] {$z[\t]$};
+    % readout -> this logit vector
+    \draw[synapse] (readout.east) -- (\logitx-0.18,\yc);
+  }
+  \node[iolabel, text=tabgray] at (\logitx+0.05, -1.05)
+        {per-timestep logits};
+
+  % ============================================================
+  % 4) average over time : the logit vectors MERGE (convergence!)
+  % ============================================================
+  \node[block, minimum width=24mm, minimum height=16mm,
+        align=center] (avg) at (8.0, 0.55)
+        {average over time\\[2pt]
+         $\bar z=\frac{1}{T}\sum_t z[t]$};
+
+  % converging arrows -- the visual heart of the figure
+  \foreach \t/\yc in {1/1.35, 2/0.55, 3/-0.25}{
+    \draw[synapse] (\logitx+0.55,\yc) -- (avg.west);
+  }
+
+  % ============================================================
+  % 5) softmax -> cross-entropy loss (+ label side input)
+  % ============================================================
+  \node[block, minimum width=16mm, align=center] (smax)
+        at (10.9, 0.55) {softmax};
+  \node[block, minimum width=20mm, minimum height=12mm, align=center]
+        (loss) at (13.4, 0.55)
+        {cross-entropy\\[1pt] loss $\mathcal{L}$};
+
+  \draw[synapse] (avg.east)  -- (smax.west)
+        node[midway, above, iolabel] {$\bar z$};
+  \draw[synapse] (smax.east) -- (loss.west);
+
+  % label y as a side input from below
+  \node[iolabel, text=taborange] (ylab) at (13.4,-1.0) {label $y$};
+  \draw[current, taborange] (ylab.north) -- (loss.south);
+
+  % ============================================================
+  % fignote
+  % ============================================================
+  \node[fignote, align=center, text width=12cm] at (6.6, -2.05)
+       {each timestep votes; averaging over time turns the spike trains
+        into one prediction.};
+\end{tikzpicture}
+\end{document}

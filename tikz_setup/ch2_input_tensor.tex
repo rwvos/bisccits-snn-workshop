@@ -1,0 +1,92 @@
+% F - input tensor shape/orientation (Chapter 2). Clarifies that each trial is a
+% C=6 (channels, IMU axes) by T=30 (timesteps) array, and that the network reads
+% ONE column (one timestep) at a time into a LIF neuron.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+
+  % grid geometry
+  \def\nrows{6}          % channels C
+  \def\ncols{8}          % shown timesteps (trailing ... => 30)
+  \def\cell{0.46}        % cell side
+  \def\gx{0}             % grid left edge (x)
+  \def\gy{0}             % grid bottom edge (y)
+  \pgfmathsetmacro{\gw}{\ncols*\cell}   % grid width
+  \pgfmathsetmacro{\gh}{\nrows*\cell}   % grid height
+  \def\hilite{5}         % index (0-based) of the highlighted column
+
+  % =================================================================
+  % smartwatch IMU source block (left)
+  % =================================================================
+  \node[block, minimum width=18mm, minimum height=12mm, align=center]
+        (imu) at (\gx-3.7, \gy+\gh/2) {smartwatch\\ IMU};
+  % arrow enters the grid at its TOP-LEFT corner, clear of the row labels below
+  \draw[current] (imu.east) |- (\gx-0.05, \gy+\gh-\cell/2)
+        node[pos=0.28, above, iolabel, text=tabblue] {records};
+
+  % =================================================================
+  % the C x T grid (matrix of small cells)
+  % rows are channels (top row = a_x), columns are timesteps
+  % =================================================================
+  \foreach \r in {0,...,5}{
+    \foreach \c in {0,...,7}{
+      % highlight one full column to show "one timestep"
+      \ifnum\c=\hilite
+        \draw[draw=tabblue, line width=0.7pt, fill=tabblue!30]
+          (\gx+\c*\cell, \gy+\r*\cell)
+          rectangle (\gx+\c*\cell+\cell, \gy+\r*\cell+\cell);
+      \else
+        \draw[draw=tabgray, line width=0.4pt, fill=tabblue!8]
+          (\gx+\c*\cell, \gy+\r*\cell)
+          rectangle (\gx+\c*\cell+\cell, \gy+\r*\cell+\cell);
+      \fi
+    }
+  }
+  % trailing dots => up to T=30
+  \node[iolabel, text=tabgray] at (\gx+\gw+0.35, \gy+\gh/2) {$\cdots$};
+
+  % ---- row labels (the 6 IMU channels), top -> bottom : ax,ay,az,gx,gy,gz ----
+  % grid row 5 (top) = a_x ... grid row 0 (bottom) = g_z
+  \foreach \r/\lab in {5/{$a_x$}, 4/{$a_y$}, 3/{$a_z$},
+                       2/{$g_x$}, 1/{$g_y$}, 0/{$g_z$}}{
+    \node[iolabel, anchor=east] at (\gx-0.12, \gy+\r*\cell+\cell/2) {\lab};
+  }
+  % input-dimension bracket on the left (C is reserved for #classes, so use x in R^6)
+  \node[iolabel, text=tabblue, rotate=90, anchor=south]
+        at (\gx-1.55, \gy+\gh/2) {input $x\in\mathbb{R}^{6}$};
+
+  % ---- time axis under the columns ----
+  \draw[-{Stealth[length=2.2mm]}, inkblack, line width=0.7pt]
+        (\gx, \gy-0.32) -- (\gx+\gw+0.55, \gy-0.32);
+  \node[iolabel, anchor=west] at (\gx+\gw+0.6, \gy-0.32)
+        {time $\rightarrow$ ($T{=}30$)};
+
+  % =================================================================
+  % one highlighted column -> a single LIF neuron
+  % =================================================================
+  \node[lifnode] (n) at (\gx+\gw+3.4, \gy+\gh/2) {$\Vmem[t]$};
+
+  % arrow from the highlighted column into the neuron
+  \pgfmathsetmacro{\hx}{\gx+\hilite*\cell+\cell}   % right edge of hilite col
+  \draw[current] (\hx, \gy+\gh/2) .. controls
+        (\hx+1.3,\gy+\gh/2) and (n.west |- {0,\gy+\gh/2}) .. (n.west)
+        node[midway, above, iolabel, text=tabblue, align=center]
+        {fed one timestep\\ (column) at a time};
+
+  % spike out of the neuron (small, to show it then runs as usual)
+  \draw[spike] (n.east) -- ($(n.east)+(1.0,0)$)
+        node[midway, above, iolabel] {$s[t]$};
+
+  % =================================================================
+  % fignote
+  % =================================================================
+  \node[fignote, align=center, text width=12cm]
+        at (\gx+\gw/2+0.6, \gy-1.25)
+       {each trial is a $6\times 30$ array (input $x$: $6$ channels $\times$
+        $T{=}30$ timesteps); the network reads one column per timestep.};
+
+\end{tikzpicture}
+\end{document}

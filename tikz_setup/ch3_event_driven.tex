@@ -1,0 +1,80 @@
+% F4 - clocked vs event-driven (Chapter 3). Two stacked timelines, one time axis.
+% Shows: TOP (ANN/GRU) a regular clock -- a "compute" block at EVERY tick, work
+% happens every step ("always on"). BOTTOM (SNN/neuromorphic) the same axis but
+% compute blocks appear ONLY at a few sparse spike events; between them the
+% hardware is idle and spends no energy. Supports the asynchrony discussion.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % ---------------------------------------------------------------
+  % geometry: two rows, each = a title, a strip of compute blocks just
+  % above its time axis, then the axis. Rows are spaced so nothing
+  % overlaps. ticks/events sit at x positions along a shared 0..\T axis.
+  % ---------------------------------------------------------------
+  \def\T{11.4}       % axis length
+  \def\dt{1.3}       % clock-tick spacing (wide enough that boxes don't overlap)
+  \def\ytop{3.0}     % clocked time axis (top row)
+  \def\ybot{0}       % event-driven time axis (bottom row)
+
+  % small reusable "compute" block, centred at (#1,#2), fill colour #3
+  % width 10mm so the \scriptsize word "compute" fits fully inside.
+  \newcommand{\compute}[3]{%
+    \node[block, fill=#3, minimum width=10mm, minimum height=6.5mm,
+          font=\scriptsize, inner sep=1pt] at (#1,#2) {compute}%
+  }
+
+  % =====================================================================
+  % TOP ROW : clocked / dense -- a compute block at EVERY tick
+  % =====================================================================
+  \node[iolabel, font=\small\bfseries, anchor=west] at (0,\ytop+1.55)
+        {clocked / dense (ANN, GRU)};
+  \node[fignote, anchor=west] at (5.7,\ytop+1.55) {-- always on};
+
+  % the clock axis
+  \draw[synapse] (0,\ytop) -- (\T,\ytop)
+        node[right, iolabel] {time};
+  % a compute block + tick at every regular step -> work happens every step
+  \foreach \t in {1,...,8}{
+    \pgfmathsetmacro{\xx}{\t*\dt}
+    \compute{\xx}{\ytop+0.82}{tabblue!12};
+    \draw[inkblack, line width=0.7pt] (\xx,\ytop+0.12) -- (\xx,\ytop-0.12);
+  }
+  \node[iolabel, text=tabgray, anchor=west] at (0,\ytop-0.55)
+        {a compute step at every regular clock tick};
+
+  % =====================================================================
+  % BOTTOM ROW : event-driven -- compute only at sparse spike events
+  % =====================================================================
+  \node[iolabel, font=\small\bfseries, text=tabgreen, anchor=west]
+        at (0,\ybot+1.7) {event-driven (SNN / neuromorphic)};
+
+  % three sparse spike events; compute fires ONLY here (tabgreen accent).
+  \foreach \t in {2.2, 5.7, 9.2}{
+    \draw[spike, tabgreen] (\t,\ybot) -- (\t,\ybot+0.55);   % the spike event
+    \node[iolabel, text=tabgreen, below=1pt] at (\t,\ybot) {spike};
+    \compute{\t}{\ybot+1.02}{tabgreen!14};                  % work, only on the event
+  }
+
+  % the same time axis (no clock grid -- nothing forces work)
+  \draw[synapse] (0,\ybot) -- (\T,\ybot)
+        node[right, iolabel] {time};
+
+  % the gaps between events are idle -- no energy spent
+  \foreach \a/\b in {2.2/5.7, 5.7/9.2}{
+    \pgfmathsetmacro{\mid}{(\a+\b)/2}
+    \draw[inactive, {Stealth[length=1.8mm]}-{Stealth[length=1.8mm]}]
+          (\a+0.7,\ybot+0.27) -- (\b-0.7,\ybot+0.27);
+    \node[fignote, anchor=south] at (\mid,\ybot+0.30) {idle --- no energy};
+  }
+
+  % =====================================================================
+  % shared caption
+  % =====================================================================
+  \node[fignote, text width=12cm, align=center] at (5.7,-1.2)
+       {dense hardware works on a clock; spiking / neuromorphic hardware
+        works only on events.};
+\end{tikzpicture}
+\end{document}

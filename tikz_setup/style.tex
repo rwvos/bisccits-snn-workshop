@@ -1,0 +1,55 @@
+% =====================================================================
+%  Shared TikZ style for the BISCCITS SNN workshop figures.
+%  Every figure file uses:
+%      \documentclass[border=2pt]{standalone}
+%      \usepackage{tikz}
+%      \input{style.tex}
+%  so that all figures share one visual language (see SKILL: tikz-figure).
+% =====================================================================
+\usepackage{amsmath}
+\usepackage{amssymb}   % \mathbb, etc.
+\usetikzlibrary{arrows.meta, positioning, calc, backgrounds, fit,
+                decorations.pathmorphing, shapes.misc}
+
+% ----- palette: matches the matplotlib tab: colours used in the notebook -----
+\definecolor{tabblue}{HTML}{1F77B4}    % input / current
+\definecolor{taborange}{HTML}{FF7F0E}  % accent / secondary
+\definecolor{tabgreen}{HTML}{2CA02C}   % SNN / "good"
+\definecolor{tabred}{HTML}{D62728}     % threshold / reset
+\definecolor{tabpurple}{HTML}{9467BD}  % membrane potential V
+\definecolor{tabgray}{HTML}{7F7F7F}    % leak / inactive / captions
+\definecolor{inkblack}{HTML}{222222}   % spikes / outlines / text
+
+% ----- typography -----
+\tikzset{every node/.style={font=\small}}
+
+% ----- canonical element styles -----
+\tikzset{
+  % the LIF neuron glyph -- reuse this EVERYWHERE a neuron appears
+  lifnode/.style={circle, draw=inkblack, line width=0.7pt,
+                  minimum size=11mm, fill=tabpurple!12, inner sep=1pt},
+  % a smaller neuron for dense multi-neuron layouts
+  lifdot/.style={circle, draw=inkblack, line width=0.6pt,
+                 minimum size=7mm, fill=tabpurple!12, inner sep=0pt},
+  iolabel/.style={font=\footnotesize, inner sep=1.5pt},
+  current/.style={-{Stealth[length=2.2mm]}, tabblue,  line width=0.9pt}, % input current
+  synapse/.style={-{Stealth[length=2.2mm]}, inkblack, line width=0.8pt}, % forward connection
+  spike/.style  ={-{Stealth[length=2.4mm]}, inkblack, line width=1.0pt}, % spike output
+  leak/.style   ={-{Stealth[length=1.8mm]}, tabgray,  line width=0.8pt, dashed}, % leak / recurrence
+  inactive/.style={tabgray!55, line width=0.6pt},      % "skipped" / silent path
+  thresholdline/.style={tabred, dashed, line width=0.8pt},
+  block/.style={draw=inkblack, rounded corners=2pt, fill=white,
+                minimum height=8mm, minimum width=16mm, inner sep=3pt},
+  layerbox/.style={draw=tabgray, rounded corners=2pt, dashed, inner sep=3mm},
+  fignote/.style={font=\footnotesize\itshape, text=tabgray},
+}
+
+% ----- canonical symbols (write them identically in every figure) -----
+\newcommand{\Vmem}{V}
+\newcommand{\Vthr}{V_{\mathrm{thr}}}
+\newcommand{\Vreset}{V_{\mathrm{reset}}}
+\newcommand{\Iin}{I}
+\newcommand{\Sout}{S}
+\newcommand{\bbeta}{\beta}
+\newcommand{\Wlayer}{W}
+\newcommand{\slope}{k}

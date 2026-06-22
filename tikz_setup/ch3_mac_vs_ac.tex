@@ -1,0 +1,78 @@
+% F3 - the efficiency crux (Chapter 3). MAC vs AC, side by side.
+% Shows: same 4-input fan-in twice. LEFT (ANN/RNN) every synapse multiplies a
+% real value x_i by w_i and accumulates -> dense MAC paid every step. RIGHT (SNN)
+% inputs are spikes s_i in {0,1}: a 1 just ADDS w_i (accumulate, no multiply),
+% a 0 is skipped (inactive edge, no work). The active-vs-skipped contrast is the
+% whole message: spikes gate the work.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\usepackage{amssymb}   % \in \{0,1\}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % ---------------------------------------------------------------
+  % geometry: two panels share the same fan-in layout (4 inputs at
+  % y = +1.8 / +0.6 / -0.6 / -1.8, output neuron on the right).
+  % left panel anchored at x=0, right panel at x=\dx.
+  % ---------------------------------------------------------------
+  \def\xin{0}        % input value/label column (relative to panel origin)
+  \def\xout{3.4}     % output neuron column (relative to panel origin)
+  \def\dx{8.6}       % horizontal offset of the right (SNN) panel
+  \def\ya{1.8}       % input rows, top -> bottom
+  \def\yb{0.6}
+  \def\yc{-0.6}
+  \def\yd{-1.8}
+
+  % =====================================================================
+  % LEFT PANEL : ANN / RNN -- dense MAC (every edge multiplies + accumulates)
+  % =====================================================================
+  \node[lifnode] (oL) at (\xout,0) {$y$};
+
+  % four real-valued inputs, every edge solid (synapse) and labelled x w_i
+  \foreach \y/\i in {\ya/1, \yb/2, \yc/3, \yd/4}{
+    \node[iolabel, text=tabblue] (xL\i) at (\xin,\y) {$x_{\i}$};
+    \draw[synapse] (xL\i.east) -- (oL.west)
+          node[pos=0.62, above, iolabel, sloped] {$\times w_{\i}$};
+  }
+
+  % panel title and output expression
+  \node[iolabel, font=\small\bfseries] at (1.7,3.0) {ANN / RNN: dense MAC};
+  \node[iolabel] at (\xout,-2.7) {$\displaystyle \sum_i w_i\,x_i$};
+
+  % caption
+  \node[fignote, text width=6.4cm, align=center] at (1.7,-3.9)
+       {every synapse multiplies $+$ accumulates (MAC) ---\\
+        paid in full, every step.};
+
+  % =====================================================================
+  % RIGHT PANEL : SNN -- spike-gated AC (only spikes add; zeros are skipped)
+  % =====================================================================
+  % tabgreen-accented output neuron to mark "the SNN side".
+  \node[lifnode, draw=tabgreen, fill=tabgreen!10] (oR) at (\dx+\xout,0) {$y$};
+
+  % per-input spike values s_i in {0,1}: rows 1 and 3 fire, rows 2 and 4 are silent.
+  % \act = 1 (spike, solid +w_i, green) ; \act = 0 (silent, inactive edge, "skip").
+  \foreach \y/\i/\act in {\ya/1/1, \yb/2/0, \yc/3/1, \yd/4/0}{
+    \node[iolabel] (xR\i) at (\dx+\xin,\y) {$s_{\i}\!=\!\act$};
+    \ifnum\act=1
+      % spiking input: solid green edge, ACCUMULATE only (+ w_i, no multiply)
+      \draw[synapse, draw=tabgreen] (xR\i.east) -- (oR.west)
+            node[pos=0.62, above, iolabel, text=tabgreen, sloped] {$+\,w_{\i}$};
+    \else
+      % silent input: faded edge, no work
+      \draw[inactive] (xR\i.east) -- (oR.west)
+            node[pos=0.62, above, iolabel, text=tabgray, sloped] {skip};
+    \fi
+  }
+
+  % panel title and output expression (sum runs only over spiking inputs)
+  \node[iolabel, font=\small\bfseries, text=tabgreen]
+        at (\dx+1.7,3.0) {SNN: spike-gated AC};
+  \node[iolabel] at (\dx+\xout,-2.7) {$\displaystyle \sum_{i:\,s_i=1} w_i$};
+
+  % caption
+  \node[fignote, text width=6.4cm, align=center] at (\dx+1.7,-3.9)
+       {only spikes do work: accumulate (AC);\\ a $0$ costs nothing.};
+\end{tikzpicture}
+\end{document}

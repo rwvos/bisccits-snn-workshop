@@ -1,0 +1,38 @@
+% F1 - reference exemplar. The single LIF neuron (Chapter 1, equations cell 1.1).
+% Shows: input current in -> membrane node with a leak self-loop (beta) -> spike out,
+% plus the threshold/hard-reset rule. The slash on the loop marks the leak as
+% conditional: the membrane only carries over while the neuron has NOT spiked
+% (a spike triggers the hard reset). This is the canonical glyph reused everywhere.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % --- the neuron ---
+  \node[lifnode] (n) {$\Vmem[t]$};
+
+  % --- input current (left) ---
+  \draw[current] (-3.0,0) -- (n.west)
+        node[midway, above, iolabel, text=tabblue] {$\Iin[t]$};
+  \node[iolabel, text=tabblue] at (-3.0,-0.45) {input current};
+
+  % --- leak / membrane recurrence: a compact, roundish self-loop above the node ---
+  % Direction: exits the top-RIGHT (n.70) and re-enters the top-LEFT (n.110).
+  % Explicit arc so the apex sits at a known point (~ (0,1.12)) for slash alignment.
+  \draw[leak] (n.70) .. controls (0.55,1.32) and (-0.55,1.32) .. (n.110);
+  % conditional slash crossing the loop at its apex
+  \draw[inkblack, line width=0.9pt] (-0.15,1.00) -- (0.15,1.24);
+  \node[iolabel, text=tabgray] at (0.52,1.10) {$\bbeta$};
+  \node[iolabel, text=tabgray] at (0,1.62) {leak (only while no spike)};
+
+  % --- spike output (right) ---
+  \draw[spike] (n.east) -- (3.0,0)
+        node[midway, above, iolabel] {$\Sout[t]$};
+  \node[iolabel] at (3.0,-0.45) {spike out};
+
+  % --- threshold / reset rule (below) ---
+  \node[iolabel, below=7mm of n, text width=5.4cm, align=center]
+       {fire when $\Vmem[t] \ge \Vthr$,\\ then hard reset $\Vmem \leftarrow \Vreset$};
+\end{tikzpicture}
+\end{document}

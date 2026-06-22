@@ -1,0 +1,90 @@
+% F3 - space-time grid (Chapter 2). Makes the dual recurrence explicit:
+% rows = layers (input, L1, L2, L3), columns = timesteps (t=1..4, then ...).
+% VERTICAL synapse arrows = feedforward in space (W); HORIZONTAL leak arrows =
+% membrane state carried in time (beta). Same lifdot glyph as Chapter 1.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % ---------------------------------------------------------------
+  % grid geometry: columns t=1..4 at x=0,2,4,6 (+ trailing ... at x=7.6)
+  % rows bottom->top: input(y=0), L1(y=1.8), L2(y=3.6), L3(y=5.4)
+  % ---------------------------------------------------------------
+  \def\dx{2.0}      % column spacing (timesteps)
+  \def\dy{1.8}      % row spacing (layers)
+  \def\yin{0}
+  \def\yL{1.8}      % y of layer 1 (rows then step by \dy)
+
+  % --- LIF neurons at every (layer>=L1, time) cell ---
+  \foreach \t in {1,2,3,4}{
+    \pgfmathsetmacro{\xc}{(\t-1)*\dx}
+    \foreach \L in {1,2,3}{
+      \pgfmathsetmacro{\yc}{\yL + (\L-1)*\dy}
+      \node[lifdot] (n\L-\t) at (\xc,\yc) {};
+    }
+    % --- input row (bottom): x[t] feeding up ---
+    \node[block, fill=tabblue!10, minimum width=11mm, minimum height=6mm]
+         (x\t) at (\xc,\yin) {$x[\t]$};
+  }
+
+  % --- VERTICAL = feedforward in space (synapse, W) : input->L1->L2->L3 ---
+  \foreach \t in {1,2,3,4}{
+    \draw[synapse] (x\t.north)  -- (n1-\t.south);
+    \draw[synapse] (n1-\t.north) -- (n2-\t.south);
+    \draw[synapse] (n2-\t.north) -- (n3-\t.south);
+  }
+  % annotate the space direction ONCE: sloped on a vertical hop (L2->L3, t=2),
+  % in open interior space so it clears the left axis + row labels.
+  \draw[synapse] (n2-2.north) -- (n3-2.south)
+        node[midway, right, iolabel, xshift=0.5mm] {$\uparrow$ feedforward ($\Wlayer$)};
+
+  % --- HORIZONTAL = membrane state in time (leak, beta) : t->t+1 per layer ---
+  \foreach \L in {1,2,3}{
+    \foreach \t/\tn in {1/2,2/3,3/4}{
+      \draw[leak] (n\L-\t.east) -- (n\L-\tn.west);
+    }
+  }
+  % annotate the time direction ONCE (on layer L2, first hop)
+  \node[iolabel, text=tabgray, above=0.5pt of n2-1, xshift=10mm]
+       {$\rightarrow$ membrane state ($\bbeta$)};
+
+  % --- trailing "..." columns (time continues) ---
+  \pgfmathsetmacro{\xdots}{3*\dx + 0.8}
+  \foreach \L in {1,2,3}{
+    \pgfmathsetmacro{\yc}{\yL + (\L-1)*\dy}
+    \node (d\L) at (\xdots,\yc) {$\cdots$};
+    \draw[leak] (n\L-4.east) -- (d\L.west);
+  }
+  \node at (\xdots,\yin) {$\cdots$};
+
+  % --- top-right: readout = mean over time ---
+  \node[block, right=10mm of d3, align=center, text width=22mm]
+       (ro) {readout\\(mean over time)};
+  \draw[synapse, inkblack] (d3.east) -- (ro.west);
+
+  % ---------------------------------------------------------------
+  % axes: "space (layers)" up the left, "time" along the bottom
+  % ---------------------------------------------------------------
+  \draw[-{Stealth[length=2.4mm]}, tabgray, line width=0.9pt]
+        (-1.7,\yin) -- (-1.7,5.6)
+        node[midway, rotate=90, above, fignote] {space (layers)};
+  \draw[-{Stealth[length=2.4mm]}, tabgray, line width=0.9pt]
+        (-0.9,-1.3) -- (6.3,-1.3)
+        node[midway, below, fignote] {time};
+
+  % --- timestep tick labels along the bottom ---
+  \foreach \t in {1,2,3,4}{
+    \pgfmathsetmacro{\xc}{(\t-1)*\dx}
+    \node[iolabel, text=tabgray] at (\xc,-0.85) {$t=\t$};
+  }
+
+  % --- row (layer) labels on the left, aligned to the axis ---
+  \node[iolabel, text=tabgray] at (-1.15,\yin) {input};
+  \foreach \L in {1,2,3}{
+    \pgfmathsetmacro{\yc}{\yL + (\L-1)*\dy}
+    \node[iolabel, text=tabgray] at (-1.15,\yc) {L\L};
+  }
+\end{tikzpicture}
+\end{document}

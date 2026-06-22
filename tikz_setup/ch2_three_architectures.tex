@@ -1,0 +1,114 @@
+% F - three baselines side by side (Chapter 2): MLP vs GRU vs SNN, all consuming
+% the SAME length-T multivariate input so they are directly comparable.
+% MLP: flatten -> dense -> logits (ignores time order).
+% GRU: unrolled recurrent cell with real-valued hidden state h_t -> logits.
+% SNN: unrolled LIF (lifdot) emitting spikes with beta state -> mean over time -> logits.
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+
+  % =================================================================
+  % Reusable shared input glyph: a small T x C grid (the same series).
+  % We draw it three times (one per architecture), vertically stacked.
+  % \drawinput{<x>}{<y>}  places the grid with its CENTRE near (x,y).
+  % =================================================================
+  \def\drawinput#1#2{%
+    \begin{scope}[shift={(#1,#2)}]
+      % 3 rows (channels, abbreviated) x 4 cols (time, abbreviated)
+      \foreach \r in {0,1,2}{
+        \foreach \c in {0,1,2,3}{
+          \draw[draw=tabgray, line width=0.4pt, fill=tabblue!10]
+                (\c*0.26,\r*0.26) rectangle (\c*0.26+0.26,\r*0.26+0.26);
+        }
+      }
+      \node[iolabel, text=tabgray, scale=0.8] at (1.18,0.39) {$\cdots$};
+      \node[iolabel, text=tabblue, scale=0.85,
+            rotate=90, anchor=south] at (-0.12,0.39) {$x\in\mathbb{R}^{6}$};
+      \node[iolabel, text=tabblue, scale=0.85] at (0.52,-0.34) {time $T$};
+    \end{scope}}
+
+  % horizontal anchors (shared logits column; mean-over-time for both recurrent rows)
+  \def\colInput{0}      % left edge of input grid
+  \def\colA{2.0}        % MLP flatten block
+  \def\xcellA{2.9}      % first unrolled recurrent cell
+  \def\xcellB{4.3}      % second unrolled cell
+  \def\xcellC{5.7}      % third unrolled cell
+  \def\xmean{7.5}       % mean-over-time block (GRU + SNN)
+  \def\colLog{9.3}      % shared logits column
+
+  % row centres for the three architectures (top -> bottom)
+  \def\rowMLP{4.6}
+  \def\rowGRU{2.3}
+  \def\rowSNN{0.0}
+
+  % small helper for the "logits" output marker (a 3-bar mini-vector)
+  \def\drawlogits#1#2{%
+    \begin{scope}[shift={(#1,#2)}]
+      \draw[draw=inkblack, line width=0.5pt] (-0.16,-0.26) rectangle (0.16,0.26);
+      \draw[draw=inkblack, line width=0.35pt] (-0.16,-0.085) -- (0.16,-0.085);
+      \draw[draw=inkblack, line width=0.35pt] (-0.16, 0.085) -- (0.16, 0.085);
+      \node[iolabel, right=1pt] at (0.16,0) {logits};
+    \end{scope}}
+
+  % =================================================================
+  % ROW 1 : MLP   (flatten -> dense -> logits)
+  % =================================================================
+  \node[iolabel, font=\footnotesize\bfseries] at (\colInput-0.2,\rowMLP+0.95) {MLP};
+  \drawinput{\colInput}{\rowMLP-0.4}
+  \node[block, minimum width=15mm] (mlpFlat) at (\colA+0.6,\rowMLP) {flatten};
+  \node[block, minimum width=18mm, align=center]
+        (mlpDense) at (\xcellB+0.3,\rowMLP) {dense\\ layers};
+  \draw[synapse] (\colInput+1.05,\rowMLP) -- (mlpFlat.west);
+  \draw[synapse] (mlpFlat.east) -- (mlpDense.west);
+  \draw[synapse] (mlpDense.east) -- (\colLog-0.2,\rowMLP);
+  \drawlogits{\colLog}{\rowMLP}
+  \node[fignote] at (\xcellB,\rowMLP-0.95) {ignores time order};
+
+  % =================================================================
+  % ROW 2 : GRU  (unrolled cell, hidden state h_t) -> mean over time -> logits
+  % =================================================================
+  \node[iolabel, font=\footnotesize\bfseries] at (\colInput-0.2,\rowGRU+0.95) {GRU};
+  \drawinput{\colInput}{\rowGRU-0.4}
+  \node[block, minimum width=11mm] (g1) at (\xcellA,\rowGRU) {GRU};
+  \node[block, minimum width=11mm] (g2) at (\xcellB,\rowGRU) {GRU};
+  \node[block, minimum width=11mm] (g3) at (\xcellC,\rowGRU) {GRU};
+  \draw[synapse] (\colInput+1.05,\rowGRU) -- (g1.west);
+  \draw[leak] (g1.east) -- (g2.west) node[midway, above, iolabel, text=tabgray] {$h_t$};
+  \draw[leak] (g2.east) -- (g3.west) node[midway, above, iolabel, text=tabgray] {$h_t$};
+  \foreach \g in {g1, g2, g3}{
+    \draw[current] ($(\g.south)+(0,-0.45)$) -- (\g.south);
+  }
+  \node[block, minimum width=14mm, align=center]
+        (gmean) at (\xmean,\rowGRU) {mean over\\ time};
+  \draw[synapse] (g3.east) -- (gmean.west);
+  \draw[synapse] (gmean.east) -- (\colLog-0.2,\rowGRU);
+  \drawlogits{\colLog}{\rowGRU}
+  \node[fignote] at (\xcellB,\rowGRU-0.95) {recurrent, real-valued};
+
+  % =================================================================
+  % ROW 3 : SNN  (unrolled LIF dots, beta state, spikes) -> mean over time -> logits
+  % =================================================================
+  \node[iolabel, font=\footnotesize\bfseries] at (\colInput-0.2,\rowSNN+0.95) {SNN};
+  \drawinput{\colInput}{\rowSNN-0.4}
+  \node[lifdot] (s1) at (\xcellA,\rowSNN) {};
+  \node[lifdot] (s2) at (\xcellB,\rowSNN) {};
+  \node[lifdot] (s3) at (\xcellC,\rowSNN) {};
+  \draw[synapse] (\colInput+1.05,\rowSNN) -- (s1.west);
+  \draw[leak] (s1.east) -- (s2.west) node[midway, above, iolabel, text=tabgray] {$\bbeta$};
+  \draw[leak] (s2.east) -- (s3.west) node[midway, above, iolabel, text=tabgray] {$\bbeta$};
+  \foreach \s in {s1, s2, s3}{
+    \draw[current] ($(\s.south)+(0,-0.45)$) -- (\s.south);
+    \draw[spike] (\s.north) -- ($(\s.north)+(0,0.32)$);
+  }
+  \node[block, minimum width=14mm, align=center]
+        (smean) at (\xmean,\rowSNN) {mean over\\ time};
+  \draw[synapse] (s3.east) -- (smean.west);
+  \draw[synapse] (smean.east) -- (\colLog-0.2,\rowSNN);
+  \drawlogits{\colLog}{\rowSNN}
+  \node[fignote] at (\xcellB,\rowSNN-0.95) {recurrent, spiking};
+
+\end{tikzpicture}
+\end{document}

@@ -1,0 +1,82 @@
+% F2 - deep SNN (Chapter 2). The Chapter-1 LIF neuron, stacked into layers.
+% Shows: per-timestep input x[t] -> 3 stacked LIF layers (columns of lifdot
+% neurons) -> linear readout -> logits. Feedforward in space (synapse arrows,
+% W^(l)), recurrent in time (leak self-loop / beta on one neuron per layer).
+\documentclass[border=2pt]{standalone}
+\usepackage{tikz}
+\usepackage{amssymb}   % \mathbb
+\input{style.tex}
+
+\begin{document}
+\begin{tikzpicture}[x=1cm, y=1cm]
+  % ---------------------------------------------------------------
+  % geometry: 4 x-columns (input, L1, L2, L3) then readout + logits
+  % each layer is a vertical column of 3 lifdot neurons at y = +1.2/0/-1.2
+  % ---------------------------------------------------------------
+  \def\xin{0}      % input block
+  \def\xL{2.6}     % layer 1 centre
+  \def\xstep{2.6}  % spacing between layer columns
+  \def\yt{1.2}     % top neuron
+  \def\ym{0}       % middle neuron
+  \def\yb{-1.2}    % bottom neuron
+
+  % --- per-timestep input ---
+  \node[block, fill=tabblue!10] (in) at (\xin,\ym) {$x[t]\in\mathbb{R}^{6}$};
+
+  % --- three LIF layers, each a column of 3 lifdot neurons ---
+  \foreach \i/\name in {1/A, 2/B, 3/C}{
+    \pgfmathsetmacro{\xc}{\xL + (\i-1)*\xstep}
+    \node[lifdot] (\name1) at (\xc,\yt) {};
+    \node[lifdot] (\name2) at (\xc,\ym) {};
+    \node[lifdot] (\name3) at (\xc,\yb) {};
+    % wrap the column in a layerbox labelled with the layer index
+    \node[layerbox, fit=(\name1)(\name2)(\name3)] (box\i) {};
+    \node[iolabel, text=tabgray, below=1pt of box\i] {LIF layer $\ell=\i$};
+  }
+
+  % --- input -> layer 1 : a few representative current arrows ---
+  \draw[current] (in.east) -- (A1.west);
+  \draw[current] (in.east) -- (A2.west);
+  \draw[current] (in.east) -- (A3.west);
+
+  % --- layer 1 -> layer 2 : representative dense synapses (not all-to-all) ---
+  \draw[synapse] (A1.east) -- (B1.west)
+        node[midway, above, iolabel, sloped] {$\Wlayer^{(2)}$};
+  \draw[synapse] (A2.east) -- (B1.west);
+  \draw[synapse] (A2.east) -- (B2.west);
+  \draw[synapse] (A2.east) -- (B3.west);
+  \draw[synapse] (A3.east) -- (B3.west);
+
+  % --- layer 2 -> layer 3 : representative dense synapses ---
+  \draw[synapse] (B1.east) -- (C1.west);
+  \draw[synapse] (B2.east) -- (C1.west);
+  \draw[synapse] (B2.east) -- (C2.west);
+  \draw[synapse] (B2.east) -- (C3.west);
+  \draw[synapse] (B3.east) -- (C3.west);
+
+  % --- temporal recurrence: leak self-loop (beta) on ONE neuron per layer ---
+  % reuses the exemplar's leak self-loop so "recurrent in time" stays visible.
+  % small, compact loop so it does not reach the neuron in the row above
+  \foreach \name in {A2, B2, C2}{
+    \draw[leak] (\name.70) .. controls ($(\name)+(0.30,0.62)$)
+          and ($(\name)+(-0.30,0.62)$) .. (\name.110);
+  }
+  \node[iolabel, text=tabgray] at (\xL,\yt+1.05) {$\bbeta$ (recurrent in time)};
+
+  % --- layer 3 -> linear readout -> logits ---
+  \pgfmathsetmacro{\xC}{\xL + 2*\xstep}
+  \node[block, right=12mm of C2] (ro) {linear readout $\Wlayer_{\mathrm{out}}$};
+  \draw[synapse] (C1.east) -- (ro.west);
+  \draw[synapse] (C2.east) -- (ro.west);
+  \draw[synapse] (C3.east) -- (ro.west);
+
+  \draw[spike] (ro.east) -- ++(1.6,0)
+        node[midway, above, iolabel] {}
+        node[right, iolabel] {logits};
+
+  % --- caption ---
+  \node[fignote, below=10mm of box2, text width=11cm, align=center]
+       {the same LIF neuron from Chapter~1, now stacked into layers
+        (feedforward in space, recurrent in time).};
+\end{tikzpicture}
+\end{document}

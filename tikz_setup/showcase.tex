@@ -1,0 +1,42 @@
+% Master review document: shows every workshop TikZ figure in notebook order.
+% Build all figures first, then:  pdflatex -interaction=nonstopmode showcase.tex
+\documentclass[11pt]{article}
+\usepackage[margin=2cm]{geometry}
+\usepackage{graphicx}
+\usepackage{caption}
+\usepackage{float}
+\captionsetup{font=small, labelfont=bf}
+
+\newcommand{\fig}[2]{%
+  \begin{figure}[H]\centering
+    \includegraphics[width=\linewidth, height=0.30\textheight, keepaspectratio]{#1}%
+    \caption{#2}
+  \end{figure}}
+
+\title{\vspace{-1.5cm}BISCCITS SNN Workshop — TikZ figure showcase}
+\date{}
+\begin{document}
+\maketitle
+\noindent All figures are standalone \texttt{tikz\_setup/*.tex}, sharing
+\texttt{style.tex}. Shown here in the order they appear in the notebook.
+
+\section*{Orientation}
+\fig{roadmap.pdf}{\textbf{roadmap} — top of notebook. The three-act arc + optional bonus.}
+
+\section*{Chapter 1 — Defining SNNs}
+\fig{ch1_lif_neuron.pdf}{\textbf{ch1\_lif\_neuron} (F1, exemplar) — the single LIF neuron: input current, leak self-loop (conditional on no spike), spike out, threshold/reset.}
+\fig{ch1_lif_unrolled.pdf}{\textbf{ch1\_lif\_unrolled} (F2) — the same neuron unrolled over timesteps; membrane state flows along $\beta$.}
+\fig{ch1_heaviside_surrogate.pdf}{\textbf{ch1\_heaviside\_surrogate} (F3) — Heaviside spike, its unusable Dirac derivative, and the smooth surrogate we substitute.}
+
+\section*{Chapter 2 — Training SNNs}
+\fig{ch2_deep_snn.pdf}{\textbf{ch2\_deep\_snn} (F4) — the LIF neuron stacked into 3 layers + readout (feedforward in space, recurrent in time).}
+\fig{ch2_space_time_grid.pdf}{\textbf{ch2\_space\_time\_grid} (F5) — layers $\times$ time grid making the dual recurrence explicit.}
+\fig{ch2_readout_loss.pdf}{\textbf{ch2\_readout\_loss} (F6) — spikes $\to$ readout $\to$ average over time $\to$ cross-entropy.}
+\fig{ch2_three_architectures.pdf}{\textbf{ch2\_three\_architectures} (F8) — MLP vs GRU vs SNN on the same input.}
+\fig{ch2_input_tensor.pdf}{\textbf{ch2\_input\_tensor} (F9) — the RacketSports input: $C{=}6$ channels $\times$ $T{=}30$ timesteps, read one column per step.}
+
+\section*{Chapter 3 — Evaluating SNNs}
+\fig{ch3_mac_vs_ac.pdf}{\textbf{ch3\_mac\_vs\_ac} (F10) — dense multiply-accumulate vs spike-gated accumulate (the efficiency crux).}
+\fig{ch3_event_driven.pdf}{\textbf{ch3\_event\_driven} (F11) — clocked dense compute vs event-driven sparse compute.}
+
+\end{document}
