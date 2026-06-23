@@ -17,9 +17,9 @@ set_seed(0)
 def lif_simulate(current, beta, threshold=1.0, v_reset=0.0):
     """Simulate one leaky integrate-and-fire neuron over time.
 
-    Discrete-time LIF as a *low-pass filter* of the input current with a *hard reset*:
+    Discrete-time LIF with a *hard reset*:
 
-        V[t] = beta * V[t-1] + (1 - beta) * I[t]     # leaky integration
+        V[t] = beta * V[t-1] + I[t]                  # leaky integration
         S[t] = 1  if V[t] >= threshold  else 0       # threshold -> spike
         V[t] <- v_reset  if S[t] == 1                # hard reset
 
@@ -45,7 +45,7 @@ def lif_simulate(current, beta, threshold=1.0, v_reset=0.0):
     v = v_reset  # state carried between steps
     for t in range(T):
         # >>> SOLUTION hint="implement the three equations above: leaky integration, then threshold -> spike, then record V and S, then hard reset on a spike"
-        v = beta * v + (1.0 - beta) * current[t]   # leaky integration
+        v = beta * v + current[t]   # leaky integration
         s = 1.0 if v >= threshold else 0.0          # spike?
         mem[t] = v                                  # record the value that crossed
         spikes[t] = s

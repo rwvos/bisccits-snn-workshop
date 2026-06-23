@@ -43,7 +43,7 @@ step `dt` and decay `beta = exp(-dt / tau_mem)`:
 
 $$
 \begin{aligned}
-V[t] &= \beta\, V[t-1] + (1-\beta)\, I[t] && \text{(leaky integration / low-pass filter)}\\
+V[t] &= \beta\, V[t-1] + I[t] && \text{(leaky integration / low-pass filter)}\\
 S[t] &= \begin{cases}1 & V[t] \ge V_\text{thr}\\ 0 & \text{otherwise}\end{cases} && \text{(threshold $\rightarrow$ spike)}\\
 V[t] &\leftarrow V_\text{reset} \quad \text{if } S[t]=1 && \text{(hard reset)}
 \end{aligned}
