@@ -82,4 +82,6 @@ python dev/run_script.py scripts/01_defining_snns.py
 
 ## License
 
-Copyright 2026 Reinier Vos & Stein Stroobants
+Released under the [MIT License](LICENSE).
+
+Copyright © 2026 Reinier Vos & Stein Stroobants
